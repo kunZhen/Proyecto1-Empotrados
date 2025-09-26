@@ -202,3 +202,106 @@ int blink(int bcm, double freq_hz, double duration_sec) {
     (void)digitalWrite(bcm, 0);
     return 0;
 }
+
+static int pwm_export(int gpio) {
+    // Intenta usar PWM hardware primero
+    char path[128], num[16];
+    snprintf(num, sizeof(num), "%d", gpio);
+    
+    // Busca PWM chip disponible para este GPIO
+    for (int chip = 0; chip < 4; chip++) {
+        snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/export", chip);
+        if (write_str(path, "0") == 0) {
+            return chip; // Retorna el chip PWM usado
+        }
+    }
+    return -1; // No hay PWM hardware disponible
+}
+
+static int pwm_software(int gpio, int duty_percent, double freq_hz) {
+    // PWM por software usando tu biblioteca existente
+    if (pinMode(gpio, OUTPUT) < 0) return -1;
+    
+    double period = 1.0 / freq_hz;
+    double on_time = period * (duty_percent / 100.0);
+    double off_time = period - on_time;
+    
+    // Solo un ciclo para prueba - en aplicación real usar thread
+    digitalWrite(gpio, 1);
+    sleep_seconds(on_time);
+    digitalWrite(gpio, 0);
+    sleep_seconds(off_time);
+    
+    return 0;
+}
+
+int motorInit(motor_t* motor, int in1, int in2, int enable) {
+    if (!motor) return -1;
+    
+    motor->pin_in1 = in1;
+    motor->pin_in2 = in2;
+    motor->pin_enable = enable;
+    
+    // Configura pines de dirección como salida
+    if (pinMode(in1, OUTPUT) < 0 || pinMode(in2, OUTPUT) < 0) {
+        return -1;
+    }
+    
+    // Configura pin de velocidad
+    if (pinMode(enable, OUTPUT) < 0) {
+        return -1;
+    }
+    
+    // Inicializa en stop
+    digitalWrite(in1, 0);
+    digitalWrite(in2, 0);
+    digitalWrite(enable, 0);
+    
+    motor->is_initialized = 1;
+    return 0;
+}
+
+int motorSetDirection(motor_t* motor, motor_direction_t direction) {
+    if (!motor || !motor->is_initialized) return -1;
+    
+    switch (direction) {
+        case MOTOR_FORWARD:
+            digitalWrite(motor->pin_in1, 1);
+            digitalWrite(motor->pin_in2, 0);
+            break;
+        case MOTOR_BACKWARD:
+            digitalWrite(motor->pin_in1, 0);
+            digitalWrite(motor->pin_in2, 1);
+            break;
+        case MOTOR_STOP:
+        default:
+            digitalWrite(motor->pin_in1, 0);
+            digitalWrite(motor->pin_in2, 0);
+            break;
+    }
+    return 0;
+}
+
+int motorSetSpeed(motor_t* motor, int speed_percent) {
+    if (!motor || !motor->is_initialized) return -1;
+    if (speed_percent < 0 || speed_percent > 100) return -1;
+    
+    if (speed_percent == 0) {
+        return digitalWrite(motor->pin_enable, 0);
+    } else if (speed_percent == 100) {
+        return digitalWrite(motor->pin_enable, 1);
+    } else {
+        // Para velocidades intermedias, necesitas PWM
+        // Por ahora, implementación simplificada:
+        return digitalWrite(motor->pin_enable, 1);
+    }
+}
+
+int motorStop(motor_t* motor) {
+    if (!motor || !motor->is_initialized) return -1;
+    
+    digitalWrite(motor->pin_in1, 0);
+    digitalWrite(motor->pin_in2, 0);
+    digitalWrite(motor->pin_enable, 0);
+    return 0;
+}
