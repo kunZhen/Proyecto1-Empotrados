@@ -24,7 +24,7 @@ BIN_DIR := $(BUILD_DIR)/bin
 
 # Configuración SSH para Raspberry Pi
 RPI_USER ?= root
-RPI_HOST ?= 192.168.100.225
+RPI_HOST ?= 192.168.7.2
 RPI_PATH ?= /root/gpioio
 
 # Nombres de aplicaciones
