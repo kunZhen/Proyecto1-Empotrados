@@ -21,3 +21,23 @@ int blink(int gpio, double freq_hz, double duration_sec);
 #ifdef __cplusplus
 }
 #endif
+
+typedef enum {
+    MOTOR_STOP = 0,
+    MOTOR_FORWARD = 1,
+    MOTOR_BACKWARD = 2
+} motor_direction_t;
+
+typedef struct {
+    int pin_in1;    // Pin dirección 1
+    int pin_in2;    // Pin dirección 2  
+    int pin_enable; // Pin PWM (ENA/ENB)
+    int is_initialized;
+} motor_t;
+
+// Funciones para motores
+int motorInit(motor_t* motor, int in1, int in2, int enable);
+int motorSetDirection(motor_t* motor, motor_direction_t direction);
+int motorSetSpeed(motor_t* motor, int speed_percent); // 0-100%
+int motorStop(motor_t* motor);
+

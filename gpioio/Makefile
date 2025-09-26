@@ -1,63 +1,96 @@
-# ========= Config =========
+# ========= Variables de configuración =========
 PREFIX ?= /usr/local
 LIBNAME := gpioio
 MAJOR := 1
-MINOR := 0
+MINOR := 1
 PATCH := 0
 
-LIB_FULL  := lib$(LIBNAME).so.$(MAJOR).$(MINOR).$(PATCH)
-LIB_SONAME:= lib$(LIBNAME).so.$(MAJOR)
-LIB_LINK  := lib$(LIBNAME).so
+# Nombres de la biblioteca
+LIB_FULL := lib$(LIBNAME).so.$(MAJOR).$(MINOR).$(PATCH)
+LIB_SONAME := lib$(LIBNAME).so.$(MAJOR)
+LIB_LINK := lib$(LIBNAME).so
 
+# Compilador y flags
 CC ?= gcc
 CPPFLAGS += -Iinclude
-CFLAGS   += -fPIC -Wall -Wextra
+CFLAGS += -fPIC -Wall -Wextra
 LDFLAGS_SHARED := -shared -Wl,-soname,$(LIB_SONAME)
 
+# Estructura de directorios
 BUILD_DIR := build
-OBJ_DIR   := $(BUILD_DIR)/obj
-LIB_DIR   := $(BUILD_DIR)/lib
-BIN_DIR   := $(BUILD_DIR)/bin
+OBJ_DIR := $(BUILD_DIR)/obj
+LIB_DIR := $(BUILD_DIR)/lib
+BIN_DIR := $(BUILD_DIR)/bin
 
-#SDROOT ?= /media/emilio/root1      # <-- ajusta si cambia el punto de montaje de tu uSD
+# Configuración SSH para Raspberry Pi
+RPI_USER ?= root
+RPI_HOST ?= 192.168.100.225
+RPI_PATH ?= /root/gpioio
+
+# Nombres de aplicaciones
 APPNAME := test_app
+MOTOR_TEST := motor_test
 
-# ========= Reglas =========
-all: dirs $(LIB_DIR)/$(LIB_FULL) $(BIN_DIR)/$(APPNAME)
+# ========= Reglas principales =========
 
+.PHONY: all clean dirs install deploy-ssh test-remote test-motors-remote
+
+# Regla por defecto
+all: dirs $(LIB_DIR)/$(LIB_FULL) $(BIN_DIR)/$(APPNAME) $(BIN_DIR)/$(MOTOR_TEST)
+
+# Crear directorios
 dirs:
 	@mkdir -p $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR)
 
+# Compilar objeto
 $(OBJ_DIR)/gpioio.o: src/gpioio.c include/gpioio.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
+# Crear biblioteca compartida
 $(LIB_DIR)/$(LIB_FULL): $(OBJ_DIR)/gpioio.o
 	$(CC) $(LDFLAGS_SHARED) -o $@ $^
-	ln -sf $(LIB_FULL) $(LIB_DIR)/$(LIB_SONAME)
-	ln -sf $(LIB_SONAME) $(LIB_DIR)/$(LIB_LINK)
+	cd $(LIB_DIR) && ln -sf $(LIB_FULL) $(LIB_SONAME)
+	cd $(LIB_DIR) && ln -sf $(LIB_SONAME) $(LIB_LINK)
 
+# Compilar aplicación de prueba básica
 $(BIN_DIR)/$(APPNAME): examples/test_app.c include/gpioio.h $(LIB_DIR)/$(LIB_FULL)
 	$(CC) -Iinclude -o $@ $< -L$(LIB_DIR) -l$(LIBNAME) -Wl,-rpath,'$$ORIGIN/../lib'
 
+# Compilar aplicación de prueba de motores
+$(BIN_DIR)/$(MOTOR_TEST): examples/motor_test.c include/gpioio.h $(LIB_DIR)/$(LIB_FULL)
+	$(CC) -Iinclude -o $@ $< -L$(LIB_DIR) -l$(LIBNAME) -Wl,-rpath,'$$ORIGIN/../lib'
+
+# Limpiar archivos generados
 clean:
 	rm -rf $(BUILD_DIR)
 
-install:
+# Instalación local
+install: all
 	install -d $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include $(DESTDIR)$(PREFIX)/bin
 	install -m 755 $(LIB_DIR)/$(LIB_FULL) $(DESTDIR)$(PREFIX)/lib/
-	ln -sf $(LIB_FULL) $(DESTDIR)$(PREFIX)/lib/$(LIB_SONAME)
-	ln -sf $(LIB_SONAME) $(DESTDIR)$(PREFIX)/lib/$(LIB_LINK)
+	cd $(DESTDIR)$(PREFIX)/lib && ln -sf $(LIB_FULL) $(LIB_SONAME)
+	cd $(DESTDIR)$(PREFIX)/lib && ln -sf $(LIB_SONAME) $(LIB_LINK)
 	install -m 644 include/gpioio.h $(DESTDIR)$(PREFIX)/include/
 	install -m 755 $(BIN_DIR)/$(APPNAME) $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 $(BIN_DIR)/$(MOTOR_TEST) $(DESTDIR)$(PREFIX)/bin/
 
-# Copia a la uSD bajo /opt/gpioio/{bin,lib} (recomendado)
-deploy-sd: all
-	install -d $(SDROOT)/opt/gpioio/bin $(SDROOT)/opt/gpioio/lib
-	install -m 755 $(BIN_DIR)/$(APPNAME) $(SDROOT)/opt/gpioio/bin/
-	# copia la lib + symlinks
-	install -m 755 $(LIB_DIR)/$(LIB_FULL) $(SDROOT)/opt/gpioio/lib/
-	ln -sf $(LIB_FULL) $(SDROOT)/opt/gpioio/lib/$(LIB_SONAME)
-	ln -sf $(LIB_SONAME) $(SDROOT)/opt/gpioio/lib/$(LIB_LINK)
+# Desplegar al Raspberry Pi via SSH
+deploy-ssh: all
+	@echo "Desplegando al Raspberry Pi..."
+	ssh $(RPI_USER)@$(RPI_HOST) "mkdir -p $(RPI_PATH)/bin $(RPI_PATH)/lib"
+	scp $(BIN_DIR)/$(APPNAME) $(RPI_USER)@$(RPI_HOST):$(RPI_PATH)/bin/
+	scp $(BIN_DIR)/$(MOTOR_TEST) $(RPI_USER)@$(RPI_HOST):$(RPI_PATH)/bin/
+	scp $(LIB_DIR)/$(LIB_FULL) $(RPI_USER)@$(RPI_HOST):$(RPI_PATH)/lib/
+	ssh $(RPI_USER)@$(RPI_HOST) "cd $(RPI_PATH)/lib && ln -sf $(LIB_FULL) $(LIB_SONAME)"
+	ssh $(RPI_USER)@$(RPI_HOST) "cd $(RPI_PATH)/lib && ln -sf $(LIB_SONAME) $(LIB_LINK)"
+	@echo "Despliegue completado en $(RPI_HOST):$(RPI_PATH)"
 
-.PHONY: all dirs clean install deploy-sd
+# Ejecutar prueba básica remota
+test-remote: deploy-ssh
+	@echo "Ejecutando prueba básica en Raspberry Pi..."
+	ssh $(RPI_USER)@$(RPI_HOST) "cd $(RPI_PATH) && LD_LIBRARY_PATH=./lib ./bin/$(APPNAME)"
 
+# Ejecutar prueba de motores remota
+test-motors-remote: deploy-ssh
+	@echo "Ejecutando prueba de motores en Raspberry Pi..."
+	ssh $(RPI_USER)@$(RPI_HOST) "cd $(RPI_PATH) && LD_LIBRARY_PATH=./lib ./bin/$(MOTOR_TEST)"
