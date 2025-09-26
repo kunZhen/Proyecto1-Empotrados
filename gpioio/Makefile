@@ -19,7 +19,7 @@ OBJ_DIR   := $(BUILD_DIR)/obj
 LIB_DIR   := $(BUILD_DIR)/lib
 BIN_DIR   := $(BUILD_DIR)/bin
 
-SDROOT ?= /media/emilio/root1      # <-- ajusta si cambia el punto de montaje de tu uSD
+#SDROOT ?= /media/emilio/root1      # <-- ajusta si cambia el punto de montaje de tu uSD
 APPNAME := test_app
 
 # ========= Reglas =========
