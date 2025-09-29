@@ -2,11 +2,10 @@ from flask import Flask
 
 def create_app():
     app = Flask(__name__)
-    app.secret_key = "cambia-esto-en-produccion"  # requerido para sesiones/login
+    app.secret_key = "cambia-esto-en-produccion"
 
-    # Ruta mínima para probar el servidor
-    @app.get("/")
-    def hello():
-        return "Hola Flask (mínimo). Servidor OK."
+    # importar y registrar el Blueprint
+    from .routes import main
+    app.register_blueprint(main)
 
     return app
