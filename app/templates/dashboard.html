@@ -3,10 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <title>Panel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <h2>Bienvenido, {{ user }} 🚀</h2>
-  <p>Este será tu panel de control del vehículo.</p>
-  <a href="{{ url_for('main.logout') }}">Cerrar sesión</a>
+  <div class="container">
+    <h2>Bienvenido, {{ user }} 🚀</h2>
+
+    <div class="card-container">
+      <!-- Tarjeta de Control -->
+      <div class="card">
+        <div class="icon">🏎️</div>
+        <h3>Control</h3>
+      </div>
+
+      <!-- Tarjeta de Especificaciones -->
+      <div class="card">
+        <div class="icon">🏁</div>
+        <h3>Especificaciones</h3>
+      </div>
+    </div>
+
+    <a class="logout" href="{{ url_for('main.logout') }}">Cerrar sesión</a>
+  </div>
 </body>
 </html>
