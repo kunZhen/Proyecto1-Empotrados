@@ -90,30 +90,30 @@
   <div id="specsModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal()">&times;</span>
-      <h3>📋 Especificaciones del Vehículo</h3>
+      <h3>�� Especificaciones del Vehículo</h3>
       <table>
         <tr>
           <th>Componente</th>
           <th>Detalle</th>
         </tr>
         <tr>
-          <td>🚗 Modelo</td>
+          <td>🚗#128663; Modelo</td>
           <td>Vehículo autónomo escala 1/10</td>
         </tr>
         <tr>
-          <td>🍓 Raspberry Pi</td>
+          <td>🍓#127827; Raspberry Pi</td>
           <td>Raspberry Pi 4, 4GB RAM</td>
         </tr>
         <tr>
-          <td>💡 LEDs</td>
+          <td>💡#128161; LEDs</td>
           <td>Indicadores frontales y traseros</td>
         </tr>
         <tr>
-          <td>📷 Cámara</td>
+          <td>📷#128247; Cámara</td>
           <td>Módulo CSI para visión frontal</td>
         </tr>
         <tr>
-          <td>⚡ Motores</td>
+          <td>⚡#9889; Motores</td>
           <td>2 Motores DC + Puente H</td>
         </tr>
       </table>
