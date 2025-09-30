@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Control del Vehículo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .control-panel {
+      background: #3D4D61;
+      padding: 30px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 1000px;
+      margin: 30px auto;
+      text-align: center;
+      color: #dce6f0;
+      box-shadow: 0px 8px 25px rgba(0,0,0,0.5);
+    }
+    .row {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 15px 0;
+    }
+    button {
+      padding: 15px 25px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #1b2b3c;
+      color: #fff;
+    }
+    button:hover { background: #27445c; }
+    .status, .camera {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #dce6f0;
+      border-radius: 8px;
+      background: #2c3e50;
+    }
+  </style>
+</head>
+<body>
+  <div class="control-panel">
+    <h2>🏎️ Control del Vehículo</h2>
+
+    <!-- Movimiento -->
+    <div class="row">
+      <button>⬆️ Avanzar</button>
+      <button>⬇️ Retroceder</button>
+      <button>⬅️ Izquierda</button>
+      <button>➡️ Derecha</button>
+    </div>
+
+    <!-- Luces -->
+    <h3>💡 Luces</h3>
+    <div class="row">
+      <button>🚨 Precaución</button>
+      <button>🔦 Frontal Derecha</button>
+      <button>🔦 Frontal Izquierda</button>
+      <button>🔙 Trasera Derecha</button>
+      <button>🔙 Trasera Izquierda</button>
+    </div>
+
+    <!-- Estado -->
+    <div class="status">
+      <h3>📊 Estado</h3>
+      <p>Velocidad: -- km/h</p>
+      <p>Movimiento: --</p>
+    </div>
+
+    <!-- Cámara -->
+    <div class="camera">
+      <h3>📷 Cámara</h3>
+      <p>[Vista de la cámara aquí]</p>
+    </div>
+
+    <a href="{{ url_for('main.dashboard') }}" style="color:#fff;">⬅️ Volver al Dashboard</a>
+  </div>
+</body>
+</html>

@@ -69,3 +69,7 @@ def dashboard():
 def logout():
     session.pop("user", None)
     return redirect(url_for("main.login"))
+
+@main.route("/control")
+def control():
+    return render_template("control.html")
