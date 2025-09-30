@@ -16,12 +16,7 @@
       color: #dce6f0;
       box-shadow: 0px 8px 25px rgba(0,0,0,0.5);
     }
-    .row {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin: 15px 0;
-    }
+    .row { display: flex; justify-content: center; gap: 15px; margin: 15px 0; }
     button {
       padding: 15px 25px;
       font-size: 16px;
@@ -47,36 +42,57 @@
 
     <!-- Movimiento -->
     <div class="row">
-      <button>⬆️ Avanzar</button>
-      <button>⬇️ Retroceder</button>
-      <button>⬅️ Izquierda</button>
-      <button>➡️ Derecha</button>
+      <button onclick="sendCommand('avanzar')">⬆️ Avanzar</button>
+      <button onclick="sendCommand('retroceder')">⬇️ Retroceder</button>
+      <button onclick="sendCommand('izquierda')">⬅️ Izquierda</button>
+      <button onclick="sendCommand('derecha')">➡️ Derecha</button>
     </div>
 
     <!-- Luces -->
     <h3>💡 Luces</h3>
     <div class="row">
-      <button>🚨 Precaución</button>
-      <button>🔦 Frontal Derecha</button>
-      <button>🔦 Frontal Izquierda</button>
-      <button>🔙 Trasera Derecha</button>
-      <button>🔙 Trasera Izquierda</button>
+      <button onclick="sendCommand('precaucion')">🚨 Precaución</button>
+      <button onclick="sendCommand('frontal_derecha')">🔦 Frontal Derecha</button>
+      <button onclick="sendCommand('frontal_izquierda')">🔦 Frontal Izquierda</button>
+      <button onclick="sendCommand('trasera_derecha')">🔙 Trasera Derecha</button>
+      <button onclick="sendCommand('trasera_izquierda')">🔙 Trasera Izquierda</button>
     </div>
 
     <!-- Estado -->
     <div class="status">
       <h3>📊 Estado</h3>
       <p>Velocidad: -- km/h</p>
-      <p>Movimiento: --</p>
+      <p id="movimiento">Movimiento: --</p>
     </div>
 
     <!-- Cámara -->
     <div class="camera">
       <h3>📷 Cámara</h3>
-      <iframe width="100%" height="300" src="https://www.youtube.com/embed/277D0mDXTBE?autoplay=1<p>[Vista de la cámara aquí]</p>mute=1<p>[Vista de la cámara aquí]</p>playsinline=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <iframe width="100%" height="300"
+              src="https://www.youtube.com/embed/277D0mDXTBE?autoplay=1&mute=1&playsinline=1"
+              frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     </div>
 
     <a href="{{ url_for('main.dashboard') }}" style="color:#fff;">⬅️ Volver al Dashboard</a>
   </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:5001/api/command";
+    function sendCommand(command) {
+      fetch(API_URL, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({command: command})
+      })
+      .then(r => r.json())
+      .then(data => {
+        console.log("Respuesta:", data);
+        if (["avanzar","retroceder","izquierda","derecha"].includes(command)) {
+          document.getElementById("movimiento").innerText = "Movimiento: " + command;
+        }
+      })
+      .catch(err => console.error("Error:", err));
+    }
+  </script>
 </body>
 </html>

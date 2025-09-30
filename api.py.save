@@ -1,0 +1,12 @@
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/api/command', methods=['POST'])
+def receive_command():
+    data = request.json
+    print("Comando recibido:", data)  # Se muestra en la terminal
+    return jsonify({"status": "ok", "received": data})
+
+if __name__ == "__main__":
+    app.run(port=5001, debug=True)
