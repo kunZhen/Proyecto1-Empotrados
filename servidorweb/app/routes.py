@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
-import json, os
+from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
+from .control import ejecutar_comando
+import json, os
 
 main = Blueprint("main", __name__)
 
@@ -70,6 +71,23 @@ def logout():
     session.pop("user", None)
     return redirect(url_for("main.login"))
 
+# ---------- Página de control ----------
 @main.route("/control")
 def control():
-    return render_template("control.html")
+    if "user" not in session:
+        return redirect(url_for("main.login"))
+    return render_template("control.html", user=session["user"])
+
+# ---------- API de control del carrito ----------
+@main.route("/api/command", methods=["POST"])
+def api_command():
+    if "user" not in session:
+        return jsonify({"error": "No autorizado"}), 403
+
+    data = request.get_json()
+    comando = data.get("command")
+    print("➡️ Comando recibido:", comando)
+
+    ejecutar_comando(comando)
+
+    return jsonify({"status": "ok", "command": comando})

@@ -3,8 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <title>Control del Vehículo</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='car.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
+    body {
+      background: #1a2634;
+      font-family: "Segoe UI", sans-serif;
+      color: #dce6f0;
+      margin: 0;
+      padding: 0;
+    }
+
     .control-panel {
       background: #3D4D61;
       padding: 30px;
@@ -16,7 +25,17 @@
       color: #dce6f0;
       box-shadow: 0px 8px 25px rgba(0,0,0,0.5);
     }
-    .row { display: flex; justify-content: center; gap: 15px; margin: 15px 0; }
+
+    h2, h3 { color: #f0f6ff; }
+
+    .row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin: 15px 0;
+    }
+
     button {
       padding: 15px 25px;
       font-size: 16px;
@@ -25,14 +44,28 @@
       cursor: pointer;
       background: #1b2b3c;
       color: #fff;
+      transition: background 0.2s ease;
     }
+
     button:hover { background: #27445c; }
+
     .status, .camera {
       margin-top: 20px;
       padding: 15px;
       border: 1px solid #dce6f0;
       border-radius: 8px;
       background: #2c3e50;
+    }
+
+    iframe {
+      border-radius: 8px;
+    }
+
+    a button {
+      background: #324c67;
+    }
+    a button:hover {
+      background: #456a8f;
     }
   </style>
 </head>
@@ -46,6 +79,7 @@
       <button onclick="sendCommand('retroceder')">⬇️ Retroceder</button>
       <button onclick="sendCommand('izquierda')">⬅️ Izquierda</button>
       <button onclick="sendCommand('derecha')">➡️ Derecha</button>
+      <button onclick="sendCommand('detener')">⛔ Detener</button>
     </div>
 
     <!-- Luces -->
@@ -68,26 +102,32 @@
     <!-- Cámara -->
     <div class="camera">
       <h3>📷 Cámara</h3>
+      <!-- Aquí luego reemplazarás el iframe por el streaming real del carrito -->
       <iframe width="100%" height="300"
               src="https://www.youtube.com/embed/277D0mDXTBE?autoplay=1&mute=1&playsinline=1"
               frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     </div>
 
-    <a href="{{ url_for('main.dashboard') }}" style="color:#fff;">⬅️ Volver al Dashboard</a>
+    <!-- Volver -->
+    <a href="{{ url_for('main.dashboard') }}" style="margin-top: 20px; display: inline-block;">
+      <button>Volver al Dashboard</button>
+    </a>
   </div>
 
   <script>
-    const API_URL = "http://127.0.0.1:5001/api/command";
+    // ✅ Usamos la misma app Flask (no puerto 5001)
+    const API_URL = "{{ url_for('main.api_command') }}";
+
     function sendCommand(command) {
       fetch(API_URL, {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({command: command})
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: command })
       })
       .then(r => r.json())
       .then(data => {
         console.log("Respuesta:", data);
-        if (["avanzar","retroceder","izquierda","derecha"].includes(command)) {
+        if (["avanzar","retroceder","izquierda","derecha","detener"].includes(command)) {
           document.getElementById("movimiento").innerText = "Movimiento: " + command;
         }
       })
