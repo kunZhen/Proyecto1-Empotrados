@@ -1,0 +1,6 @@
+{
+    "henry": {
+        "email": "henryda2004@gmail.com",
+        "password": "scrypt:32768:8:1$zG2ftnU5SfFJiVn9$6a98f15a5be0130fd01fdab82965bd205edfbff834fb30357604f86326fe42148ef5f58fd2482fed4cd9f8effb345d464a6962d5d8157ad69b160eb6c470aeb1"
+    }
+}

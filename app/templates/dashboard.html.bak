@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* Estilos del modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #3D4D61;
+      padding: 30px;
+      border-radius: 15px;
+      width: 500px;
+      text-align: center;
+      box-shadow: 0px 8px 25px rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s;
+    }
+
+    .modal-content h3 {
+      color: #dce6f0;
+      margin-bottom: 20px;
+    }
+
+    .modal-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+
+    .modal-content th, .modal-content td {
+      padding: 10px;
+      border: 1px solid #dce6f0;
+      color: #dce6f0;
+      text-align: left;
+    }
+
+    .close {
+      color: #ff8080;
+      float: right;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover {
+      color: #ff4c4c;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Bienvenido, {{ user }} 🚀</h2>
+
+    <div class="card-container">
+      <!-- Tarjeta de Control -->
+      <div class="card">
+        <div class="icon">🏎️</div>
+        <h3>Control</h3>
+      </div>
+
+      <!-- Tarjeta de Especificaciones -->
+      <div class="card" onclick="openModal()">
+        <div class="icon">🏁</div>
+        <h3>Especificaciones</h3>
+      </div>
+    </div>
+
+    <a class="logout" href="{{ url_for('main.logout') }}">Cerrar sesión</a>
+  </div>
+
+  <!-- Modal -->
+  <div id="specsModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h3>�� Especificaciones del Vehículo</h3>
+      <table>
+        <tr>
+          <th>Componente</th>
+          <th>Detalle</th>
+        </tr>
+        <tr>
+          <td>🚗#128663; Modelo</td>
+          <td>Vehículo autónomo escala 1/10</td>
+        </tr>
+        <tr>
+          <td>🍓#127827; Raspberry Pi</td>
+          <td>Raspberry Pi 4, 4GB RAM</td>
+        </tr>
+        <tr>
+          <td>💡#128161; LEDs</td>
+          <td>Indicadores frontales y traseros</td>
+        </tr>
+        <tr>
+          <td>📷#128247; Cámara</td>
+          <td>Módulo CSI para visión frontal</td>
+        </tr>
+        <tr>
+          <td>⚡#9889; Motores</td>
+          <td>2 Motores DC + Puente H</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function openModal() {
+      document.getElementById("specsModal").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("specsModal").style.display = "none";
+    }
+  </script>
+</body>
+</html>
