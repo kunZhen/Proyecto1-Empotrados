@@ -30,13 +30,14 @@ RPI_PATH ?= /root/gpioio
 # Nombres de aplicaciones
 APPNAME := test_app
 MOTOR_TEST := motor_test
+VEHICLE_TEST := vehicle_test
 
 # ========= Reglas principales =========
 
 .PHONY: all clean dirs install deploy-ssh test-remote test-motors-remote
 
 # Regla por defecto
-all: dirs $(LIB_DIR)/$(LIB_FULL) $(BIN_DIR)/$(APPNAME) $(BIN_DIR)/$(MOTOR_TEST)
+all: dirs $(LIB_DIR)/$(LIB_FULL) $(BIN_DIR)/$(APPNAME) $(BIN_DIR)/$(MOTOR_TEST) $(BIN_DIR)/$(VEHICLE_TEST)
 
 # Crear directorios
 dirs:
@@ -60,6 +61,10 @@ $(BIN_DIR)/$(APPNAME): examples/test_app.c include/gpioio.h $(LIB_DIR)/$(LIB_FUL
 $(BIN_DIR)/$(MOTOR_TEST): examples/motor_test.c include/gpioio.h $(LIB_DIR)/$(LIB_FULL)
 	$(CC) -Iinclude -o $@ $< -L$(LIB_DIR) -l$(LIBNAME) -Wl,-rpath,'$$ORIGIN/../lib'
 
+# Compilar aplicación de prueba de motores con luces
+$(BIN_DIR)/$(VEHICLE_TEST): examples/vehicle_test.c include/gpioio.h $(LIB_DIR)/$(LIB_FULL)
+	$(CC) -Iinclude -o $@ $< -L$(LIB_DIR) -l$(LIBNAME) -Wl,-rpath,'$$ORIGIN/../lib'
+
 # Limpiar archivos generados
 clean:
 	rm -rf $(BUILD_DIR)
@@ -73,6 +78,7 @@ install: all
 	install -m 644 include/gpioio.h $(DESTDIR)$(PREFIX)/include/
 	install -m 755 $(BIN_DIR)/$(APPNAME) $(DESTDIR)$(PREFIX)/bin/
 	install -m 755 $(BIN_DIR)/$(MOTOR_TEST) $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 $(BIN_DIR)/$(VEHICLE_TEST) $(DESTDIR)$(PREFIX)/bin/
 
 # Desplegar al Raspberry Pi via SSH
 deploy-ssh: all
@@ -80,6 +86,7 @@ deploy-ssh: all
 	ssh $(RPI_USER)@$(RPI_HOST) "mkdir -p $(RPI_PATH)/bin $(RPI_PATH)/lib"
 	scp $(BIN_DIR)/$(APPNAME) $(RPI_USER)@$(RPI_HOST):$(RPI_PATH)/bin/
 	scp $(BIN_DIR)/$(MOTOR_TEST) $(RPI_USER)@$(RPI_HOST):$(RPI_PATH)/bin/
+	scp $(BIN_DIR)/$(VEHICLE_TEST) $(RPI_USER)@$(RPI_HOST):$(RPI_PATH)/bin/
 	scp $(LIB_DIR)/$(LIB_FULL) $(RPI_USER)@$(RPI_HOST):$(RPI_PATH)/lib/
 	ssh $(RPI_USER)@$(RPI_HOST) "cd $(RPI_PATH)/lib && ln -sf $(LIB_FULL) $(LIB_SONAME)"
 	ssh $(RPI_USER)@$(RPI_HOST) "cd $(RPI_PATH)/lib && ln -sf $(LIB_SONAME) $(LIB_LINK)"
@@ -94,3 +101,7 @@ test-remote: deploy-ssh
 test-motors-remote: deploy-ssh
 	@echo "Ejecutando prueba de motores en Raspberry Pi..."
 	ssh $(RPI_USER)@$(RPI_HOST) "cd $(RPI_PATH) && LD_LIBRARY_PATH=./lib ./bin/$(MOTOR_TEST)"
+
+test-vehicle-remote: deploy-ssh
+	@echo "Ejecutando prueba de vehículo en Raspberry Pi..."
+	ssh $(RPI_USER)@$(RPI_HOST) "cd $(RPI_PATH) && LD_LIBRARY_PATH=./lib ./bin/$(VEHICLE_TEST)"

@@ -16,12 +16,12 @@ int main(void) {
     motor_t motorA, motorB;
     
     // Inicializa motores usando tu API
-    if (motorInit(&motorA, MOTOR_A_IN1, MOTOR_A_IN2, MOTOR_A_ENA) < 0) {
+    if (motorInit(&motorA, MOTOR_A_IN1, MOTOR_A_IN2, MOTOR_A_ENA, NULL) < 0) {
         perror("Error inicializando motor A");
         return 1;
     }
     
-    if (motorInit(&motorB, MOTOR_B_IN3, MOTOR_B_IN4, MOTOR_B_ENB) < 0) {
+    if (motorInit(&motorB, MOTOR_B_IN3, MOTOR_B_IN4, MOTOR_B_ENB, NULL) < 0) {
         perror("Error inicializando motor B");
         return 1;
     }

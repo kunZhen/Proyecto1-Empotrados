@@ -14,6 +14,24 @@ int digitalWrite(int gpio, int value);
 int digitalRead(int gpio);
 int blink(int gpio, double freq_hz, double duration_sec);
 
+/* LEDs del vehículo */
+typedef struct {
+    int led_front_left;
+    int led_front_right;
+    int led_back_left;
+    int led_back_right;
+    int is_initialized;
+} vehicle_leds_t;
+
+int ledsInit(vehicle_leds_t* leds, int front_left, int front_right, 
+             int back_left, int back_right);
+int ledSet(int gpio, int state);
+int ledsFrontOn(vehicle_leds_t* leds);
+int ledsBackOn(vehicle_leds_t* leds);
+int ledsLeftOn(vehicle_leds_t* leds);
+int ledsRightOn(vehicle_leds_t* leds);
+int ledsAllOff(vehicle_leds_t* leds);
+
 /* PWM por hardware */
 int pwmExport(int pwm_chip, int pwm_channel);
 int pwmUnexport(int pwm_chip, int pwm_channel);
@@ -36,14 +54,27 @@ typedef struct {
     int pwm_channel;
     int use_pwm;
     int is_initialized;
+    vehicle_leds_t* leds;  
 } motor_t;
 
-/* DESPUÉS las funciones que usan motor_t */
-int motorInit(motor_t* motor, int in1, int in2, int enable);
+int motorInit(motor_t* motor, int in1, int in2, int enable, vehicle_leds_t* leds);
 int motorSetDirection(motor_t* motor, motor_direction_t direction);
 int motorSetSpeed(motor_t* motor, int speed_percent);
 int motorStop(motor_t* motor);
 
+// Función de alto nivel: combina dos motores + LEDs
+typedef struct {
+    motor_t* motor_left;
+    motor_t* motor_right;
+    vehicle_leds_t* leds;
+} vehicle_t;
+
+int vehicleInit(vehicle_t* vehicle, motor_t* left, motor_t* right, vehicle_leds_t* leds);
+int vehicleForward(vehicle_t* vehicle, int speed);
+int vehicleBackward(vehicle_t* vehicle, int speed);
+int vehicleLeft(vehicle_t* vehicle, int speed);
+int vehicleRight(vehicle_t* vehicle, int speed);
+int vehicleStop(vehicle_t* vehicle);
 
 
 #ifdef __cplusplus

@@ -273,15 +273,94 @@ int pwmEnable(int pwm_chip, int pwm_channel, int enable) {
     return write_str(path, enable ? "1" : "0");
 }
 
+// ========== FUNCIONES DE LEDs ==========
+
+int ledsInit(vehicle_leds_t* leds, int front_left, int front_right,
+             int back_left, int back_right) {
+    if (!leds) return -1;
+    
+    leds->led_front_left = front_left;
+    leds->led_front_right = front_right;
+    leds->led_back_left = back_left;
+    leds->led_back_right = back_right;
+    
+    // Configura todos como salida
+    if (pinMode(front_left, OUTPUT) < 0 ||
+        pinMode(front_right, OUTPUT) < 0 ||
+        pinMode(back_left, OUTPUT) < 0 ||
+        pinMode(back_right, OUTPUT) < 0) {
+        return -1;
+    }
+    
+    // Apaga todos inicialmente
+    digitalWrite(front_left, 0);
+    digitalWrite(front_right, 0);
+    digitalWrite(back_left, 0);
+    digitalWrite(back_right, 0);
+    
+    leds->is_initialized = 1;
+    return 0;
+}
+
+int ledSet(int gpio, int state) {
+    return digitalWrite(gpio, state ? 1 : 0);
+}
+
+int ledsFrontOn(vehicle_leds_t* leds) {
+    if (!leds || !leds->is_initialized) return -1;
+    digitalWrite(leds->led_front_left, 1);
+    digitalWrite(leds->led_front_right, 1);
+    digitalWrite(leds->led_back_left, 0);
+    digitalWrite(leds->led_back_right, 0);
+    return 0;
+}
+
+int ledsBackOn(vehicle_leds_t* leds) {
+    if (!leds || !leds->is_initialized) return -1;
+    digitalWrite(leds->led_front_left, 0);
+    digitalWrite(leds->led_front_right, 0);
+    digitalWrite(leds->led_back_left, 1);
+    digitalWrite(leds->led_back_right, 1);
+    return 0;
+}
+
+int ledsLeftOn(vehicle_leds_t* leds) {
+    if (!leds || !leds->is_initialized) return -1;
+    digitalWrite(leds->led_front_left, 1);
+    digitalWrite(leds->led_front_right, 0);
+    digitalWrite(leds->led_back_left, 1);
+    digitalWrite(leds->led_back_right, 0);
+    return 0;
+}
+
+int ledsRightOn(vehicle_leds_t* leds) {
+    if (!leds || !leds->is_initialized) return -1;
+    digitalWrite(leds->led_front_left, 0);
+    digitalWrite(leds->led_front_right, 1);
+    digitalWrite(leds->led_back_left, 0);
+    digitalWrite(leds->led_back_right, 1);
+    return 0;
+}
+
+int ledsAllOff(vehicle_leds_t* leds) {
+    if (!leds || !leds->is_initialized) return -1;
+    digitalWrite(leds->led_front_left, 0);
+    digitalWrite(leds->led_front_right, 0);
+    digitalWrite(leds->led_back_left, 0);
+    digitalWrite(leds->led_back_right, 0);
+    return 0;
+}
+
 // ========== FUNCIONES DE MOTOR (DESPUÉS DEL PWM) ==========
 
-int motorInit(motor_t* motor, int in1, int in2, int enable) {
+int motorInit(motor_t* motor, int in1, int in2, int enable, vehicle_leds_t* leds) {
     if (!motor) return -1;
     
     motor->pin_in1 = in1;
     motor->pin_in2 = in2;
     motor->pin_enable = enable;
     motor->use_pwm = 0;
+    motor->leds = leds;  // Guarda referencia a LEDs
     
     if (pinMode(in1, OUTPUT) < 0 || pinMode(in2, OUTPUT) < 0) {
         return -1;
@@ -356,5 +435,61 @@ int motorStop(motor_t* motor) {
     } else {
         digitalWrite(motor->pin_enable, 0);
     }
+    return 0;
+}
+
+int vehicleInit(vehicle_t* vehicle, motor_t* left, motor_t* right, vehicle_leds_t* leds) {
+    if (!vehicle || !left || !right || !leds) return -1;
+    vehicle->motor_left = left;
+    vehicle->motor_right = right;
+    vehicle->leds = leds;
+    return 0;
+}
+
+int vehicleForward(vehicle_t* vehicle, int speed) {
+    if (!vehicle) return -1;
+    ledsFrontOn(vehicle->leds);
+    motorSetDirection(vehicle->motor_left, MOTOR_FORWARD);
+    motorSetDirection(vehicle->motor_right, MOTOR_FORWARD);
+    motorSetSpeed(vehicle->motor_left, speed);
+    motorSetSpeed(vehicle->motor_right, speed);
+    return 0;
+}
+
+int vehicleBackward(vehicle_t* vehicle, int speed) {
+    if (!vehicle) return -1;
+    ledsBackOn(vehicle->leds);
+    motorSetDirection(vehicle->motor_left, MOTOR_BACKWARD);
+    motorSetDirection(vehicle->motor_right, MOTOR_BACKWARD);
+    motorSetSpeed(vehicle->motor_left, speed);
+    motorSetSpeed(vehicle->motor_right, speed);
+    return 0;
+}
+
+int vehicleLeft(vehicle_t* vehicle, int speed) {
+    if (!vehicle) return -1;
+    ledsLeftOn(vehicle->leds);
+    motorSetDirection(vehicle->motor_left, MOTOR_STOP);
+    motorSetDirection(vehicle->motor_right, MOTOR_FORWARD);
+    motorSetSpeed(vehicle->motor_left, 0);
+    motorSetSpeed(vehicle->motor_right, speed);
+    return 0;
+}
+
+int vehicleRight(vehicle_t* vehicle, int speed) {
+    if (!vehicle) return -1;
+    ledsRightOn(vehicle->leds);
+    motorSetDirection(vehicle->motor_left, MOTOR_FORWARD);
+    motorSetDirection(vehicle->motor_right, MOTOR_STOP);
+    motorSetSpeed(vehicle->motor_left, speed);
+    motorSetSpeed(vehicle->motor_right, 0);
+    return 0;
+}
+
+int vehicleStop(vehicle_t* vehicle) {
+    if (!vehicle) return -1;
+    ledsAllOff(vehicle->leds);
+    motorStop(vehicle->motor_left);
+    motorStop(vehicle->motor_right);
     return 0;
 }
