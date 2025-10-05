@@ -1,11 +1,7 @@
-from flask import Flask
-from app.routes import main
+from app import create_app
 
-app = Flask(__name__)
-app.secret_key = "supersecret"  # cámbiala
-
-app.register_blueprint(main)
+app = create_app()
 
 if __name__ == "__main__":
-    print(">>> Servidor Flask iniciado en http://0.0.0.0:5000")
+    print(">>> Arrancando servidor Flask...")
     app.run(host="0.0.0.0", port=5000, debug=True)
