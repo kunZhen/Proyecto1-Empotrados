@@ -1,0 +1,9 @@
+country=CR
+ctrl_interface=DIR=/var/run/wpa_supplicant 
+update_config=1
+
+network={
+    ssid="Sansung A-32"
+    psk="Mascotas#2020"
+    key_mgmt=WPA-PSK
+}

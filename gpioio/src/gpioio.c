@@ -203,37 +203,77 @@ int blink(int bcm, double freq_hz, double duration_sec) {
     return 0;
 }
 
-static int pwm_export(int gpio) {
-    // Intenta usar PWM hardware primero
-    char path[128], num[16];
-    snprintf(num, sizeof(num), "%d", gpio);
-    
-    // Busca PWM chip disponible para este GPIO
-    for (int chip = 0; chip < 4; chip++) {
-        snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/export", chip);
-        if (write_str(path, "0") == 0) {
-            return chip; // Retorna el chip PWM usado
+typedef struct {
+    int gpio;
+    int pwm_chip;
+    int pwm_channel;
+} gpio_pwm_map_t;
+
+static const gpio_pwm_map_t pwm_map[] = {
+    {12, 0, 0},
+    {13, 0, 1},
+    {18, 0, 0},
+    {19, 0, 1},
+};
+static const int pwm_map_size = sizeof(pwm_map) / sizeof(pwm_map[0]);
+
+static int gpio_to_pwm(int gpio, int *chip, int *channel) {
+    for (int i = 0; i < pwm_map_size; i++) {
+        if (pwm_map[i].gpio == gpio) {
+            *chip = pwm_map[i].pwm_chip;
+            *channel = pwm_map[i].pwm_channel;
+            return 0;
         }
     }
-    return -1; // No hay PWM hardware disponible
+    return -1;
 }
 
-static int pwm_software(int gpio, int duty_percent, double freq_hz) {
-    // PWM por software usando tu biblioteca existente
-    if (pinMode(gpio, OUTPUT) < 0) return -1;
+int pwmExport(int pwm_chip, int pwm_channel) {
+    char path[128], num[16];
+    snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/export", pwm_chip);
+    snprintf(num, sizeof(num), "%d", pwm_channel);
     
-    double period = 1.0 / freq_hz;
-    double on_time = period * (duty_percent / 100.0);
-    double off_time = period - on_time;
+    if (write_str(path, num) < 0) {
+        if (errno == EBUSY) return 0;
+        return -1;
+    }
     
-    // Solo un ciclo para prueba - en aplicación real usar thread
-    digitalWrite(gpio, 1);
-    sleep_seconds(on_time);
-    digitalWrite(gpio, 0);
-    sleep_seconds(off_time);
-    
-    return 0;
+    snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/pwm%d/period", 
+             pwm_chip, pwm_channel);
+    return wait_for_path(path, 500);
 }
+
+int pwmUnexport(int pwm_chip, int pwm_channel) {
+    char path[128], num[16];
+    snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/unexport", pwm_chip);
+    snprintf(num, sizeof(num), "%d", pwm_channel);
+    return write_str(path, num);
+}
+
+int pwmSetPeriod(int pwm_chip, int pwm_channel, unsigned long period_ns) {
+    char path[128], val[32];
+    snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/pwm%d/period", 
+             pwm_chip, pwm_channel);
+    snprintf(val, sizeof(val), "%lu", period_ns);
+    return write_str(path, val);
+}
+
+int pwmSetDutyCycle(int pwm_chip, int pwm_channel, unsigned long duty_ns) {
+    char path[128], val[32];
+    snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/pwm%d/duty_cycle", 
+             pwm_chip, pwm_channel);
+    snprintf(val, sizeof(val), "%lu", duty_ns);
+    return write_str(path, val);
+}
+
+int pwmEnable(int pwm_chip, int pwm_channel, int enable) {
+    char path[128];
+    snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/pwm%d/enable", 
+             pwm_chip, pwm_channel);
+    return write_str(path, enable ? "1" : "0");
+}
+
+// ========== FUNCIONES DE MOTOR (DESPUÉS DEL PWM) ==========
 
 int motorInit(motor_t* motor, int in1, int in2, int enable) {
     if (!motor) return -1;
@@ -241,21 +281,32 @@ int motorInit(motor_t* motor, int in1, int in2, int enable) {
     motor->pin_in1 = in1;
     motor->pin_in2 = in2;
     motor->pin_enable = enable;
+    motor->use_pwm = 0;
     
-    // Configura pines de dirección como salida
     if (pinMode(in1, OUTPUT) < 0 || pinMode(in2, OUTPUT) < 0) {
         return -1;
     }
     
-    // Configura pin de velocidad
-    if (pinMode(enable, OUTPUT) < 0) {
-        return -1;
+    if (gpio_to_pwm(enable, &motor->pwm_chip, &motor->pwm_channel) == 0) {
+        if (pwmExport(motor->pwm_chip, motor->pwm_channel) == 0) {
+            pwmSetPeriod(motor->pwm_chip, motor->pwm_channel, 1000000);
+            pwmSetDutyCycle(motor->pwm_chip, motor->pwm_channel, 0);
+            pwmEnable(motor->pwm_chip, motor->pwm_channel, 1);
+            motor->use_pwm = 1;
+        }
     }
     
-    // Inicializa en stop
+    if (!motor->use_pwm) {
+        if (pinMode(enable, OUTPUT) < 0) {
+            return -1;
+        }
+    }
+    
     digitalWrite(in1, 0);
     digitalWrite(in2, 0);
-    digitalWrite(enable, 0);
+    if (!motor->use_pwm) {
+        digitalWrite(enable, 0);
+    }
     
     motor->is_initialized = 1;
     return 0;
@@ -286,14 +337,11 @@ int motorSetSpeed(motor_t* motor, int speed_percent) {
     if (!motor || !motor->is_initialized) return -1;
     if (speed_percent < 0 || speed_percent > 100) return -1;
     
-    if (speed_percent == 0) {
-        return digitalWrite(motor->pin_enable, 0);
-    } else if (speed_percent == 100) {
-        return digitalWrite(motor->pin_enable, 1);
+    if (motor->use_pwm) {
+        unsigned long duty = (1000000UL * speed_percent) / 100;
+        return pwmSetDutyCycle(motor->pwm_chip, motor->pwm_channel, duty);
     } else {
-        // Para velocidades intermedias, necesitas PWM
-        // Por ahora, implementación simplificada:
-        return digitalWrite(motor->pin_enable, 1);
+        return digitalWrite(motor->pin_enable, speed_percent > 0 ? 1 : 0);
     }
 }
 
@@ -302,6 +350,11 @@ int motorStop(motor_t* motor) {
     
     digitalWrite(motor->pin_in1, 0);
     digitalWrite(motor->pin_in2, 0);
-    digitalWrite(motor->pin_enable, 0);
+    
+    if (motor->use_pwm) {
+        pwmSetDutyCycle(motor->pwm_chip, motor->pwm_channel, 0);
+    } else {
+        digitalWrite(motor->pin_enable, 0);
+    }
     return 0;
 }
