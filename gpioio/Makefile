@@ -105,3 +105,13 @@ test-motors-remote: deploy-ssh
 test-vehicle-remote: deploy-ssh
 	@echo "Ejecutando prueba de vehículo en Raspberry Pi..."
 	ssh $(RPI_USER)@$(RPI_HOST) "cd $(RPI_PATH) && LD_LIBRARY_PATH=./lib ./bin/$(VEHICLE_TEST)"
+
+deploy-server: deploy-ssh
+	@echo "Desplegando servidor web..."
+	ssh $(RPI_USER)@$(RPI_HOST) "mkdir -p /root/vehicle-server/static /root/vehicle-server/templates"
+	scp ../vehicle-server/app.py $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/
+	scp ../vehicle-server/gpio_wrapper.py $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/
+	scp ../vehicle-server/templates/index.html $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/templates/
+	scp ../vehicle-server/static/*.css $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/static/
+	scp ../vehicle-server/static/*.js $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/static/
+	@echo "Servidor desplegado"
