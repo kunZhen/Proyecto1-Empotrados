@@ -12,7 +12,7 @@ app.secret_key = 'your-secret-key-change-this-in-production'  # Cambia esto
 
 # Usuario hardcoded 
 USERS = {
-    'admin': hashlib.sha256('admin123'.encode()).hexdigest()
+    'adminCE': hashlib.sha256('CE1234'.encode()).hexdigest()
 }
 
 def login_required(f):
@@ -117,9 +117,6 @@ def generate_frames():
     finally:
         process.terminate()
 
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 @app.route('/video_feed')
 def video_feed():
@@ -128,6 +125,7 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/control', methods=['POST'])
+@login_required
 def control():
     if not vehicle:
         return jsonify({'error': 'Vehicle not initialized'}), 500
@@ -163,6 +161,7 @@ def status():
     })
 
 @app.route('/api/capture', methods=['POST'])
+@login_required
 def capture_image():
     """Captura el frame actual del stream"""
     global last_frame

@@ -111,7 +111,7 @@ deploy-server: deploy-ssh
 	ssh $(RPI_USER)@$(RPI_HOST) "mkdir -p /root/vehicle-server/static /root/vehicle-server/templates"
 	scp ../vehicle-server/app.py $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/
 	scp ../vehicle-server/gpio_wrapper.py $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/
-	scp ../vehicle-server/templates/index.html $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/templates/
-	scp ../vehicle-server/static/*.css $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/static/
-	scp ../vehicle-server/static/*.js $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/static/
+	scp ../vehicle-server/templates/*.html $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/templates/
+	scp ../vehicle-server/static/*.css $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/static/ 2>/dev/null || true
+	scp ../vehicle-server/static/*.js $(RPI_USER)@$(RPI_HOST):/root/vehicle-server/static/ 2>/dev/null || true
 	@echo "Servidor desplegado"

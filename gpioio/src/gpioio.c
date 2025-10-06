@@ -12,62 +12,6 @@
 #include <limits.h>
 #include <sys/time.h>
 
-
-/* Motores globales */
-static motor_t motor_izq;
-static motor_t motor_der;
-static int init_done = 0;
-
-void system_init(void) {
-    if (init_done) return;
-    printf("[C] Inicializando sistema GPIO...\n");
-    motorInit(&motor_izq, IN1_L, IN2_L, EN_L);
-    motorInit(&motor_der, IN1_R, IN2_R, EN_R);
-    init_done = 1;
-}
-
-/* === Funciones expuestas para Python === */
-
-void move_forward(void) {
-    system_init();
-    printf("[C] Movimiento: adelante\n");
-    motorSetDirection(&motor_izq, MOTOR_FORWARD);
-    motorSetDirection(&motor_der, MOTOR_FORWARD);
-    motorSetSpeed(&motor_izq, 100);
-    motorSetSpeed(&motor_der, 100);
-}
-
-void move_backward(void) {
-    system_init();
-    printf("[C] Movimiento: atrás\n");
-    motorSetDirection(&motor_izq, MOTOR_BACKWARD);
-    motorSetDirection(&motor_der, MOTOR_BACKWARD);
-    motorSetSpeed(&motor_izq, 100);
-    motorSetSpeed(&motor_der, 100);
-}
-
-void turn_left(void) {
-    system_init();
-    printf("[C] Movimiento: izquierda\n");
-    motorSetDirection(&motor_izq, MOTOR_STOP);
-    motorSetDirection(&motor_der, MOTOR_FORWARD);
-}
-
-void turn_right(void) {
-    system_init();
-    printf("[C] Movimiento: derecha\n");
-    motorSetDirection(&motor_izq, MOTOR_FORWARD);
-    motorSetDirection(&motor_der, MOTOR_STOP);
-}
-
-void stop(void) {
-    system_init();
-    printf("[C] Movimiento: detener\n");
-    motorStop(&motor_izq);
-    motorStop(&motor_der);
-}
-
-
 static int write_str(const char *path, const char *s) {
     int fd = open(path, O_WRONLY);
     if (fd < 0) return -1;

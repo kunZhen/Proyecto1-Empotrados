@@ -79,3 +79,100 @@ ls -lh test.jpg
 
 ## Copiar imagen a mi pc
 scp root@192.168.100.234:test.jpg ~/
+
+-----------------------
+# Receta del servicio
+```bash
+mkdir -p ~/poky/meta-myconfig/recipes-apps/vehicle-server/files
+```
+
+crear archivo de servicio
+```bash
+nano ~/poky/meta-myconfig/recipes-apps/vehicle-server/files/vehicle-server.service
+```
+
+```bash
+[Unit]
+Description=Vehicle Control Web Server
+After=network.target wifi-autostart.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/vehicle-server
+ExecStart=/usr/bin/python3 /root/vehicle-server/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+crear receta de instalación
+```bash
+nano ~/poky/meta-myconfig/recipes-apps/vehicle-server/vehicle-server_1.0.bb
+```
+
+```bash
+SUMMARY = "Vehicle Control Web Server"
+LICENSE = "MIT"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
+
+SRC_URI = "file://vehicle-server.service \
+           file://app.py \
+           file://gpio_wrapper.py \
+           file://templates/index.html \
+           file://templates/login.html \
+           file://static/style.css \
+           file://static/control.js"
+
+S = "${WORKDIR}"
+
+inherit systemd
+
+SYSTEMD_SERVICE:${PN} = "vehicle-server.service"
+SYSTEMD_AUTO_ENABLE = "enable"
+
+RDEPENDS:${PN} = "python3 python3-flask"
+
+do_install() {
+    # Instala archivos del servidor
+    install -d ${D}/root/vehicle-server
+    install -d ${D}/root/vehicle-server/templates
+    install -d ${D}/root/vehicle-server/static
+    
+    install -m 0644 ${WORKDIR}/app.py ${D}/root/vehicle-server/
+    install -m 0644 ${WORKDIR}/gpio_wrapper.py ${D}/root/vehicle-server/
+    install -m 0644 ${WORKDIR}/templates/index.html ${D}/root/vehicle-server/templates/
+    install -m 0644 ${WORKDIR}/templates/login.html ${D}/root/vehicle-server/templates/
+    install -m 0644 ${WORKDIR}/static/style.css ${D}/root/vehicle-server/static/
+    install -m 0644 ${WORKDIR}/static/control.js ${D}/root/vehicle-server/static/
+    
+    # Instala servicio systemd
+    install -d ${D}${systemd_system_unitdir}
+    install -m 0644 ${WORKDIR}/vehicle-server.service ${D}${systemd_system_unitdir}/
+}
+
+FILES:${PN} += "/root/vehicle-server"
+```
+
+copiar archivos a la receta
+```bash
+cp ~/Proyecto1-Empotrados/vehicle-server/app.py ~/poky/meta-myconfig/recipes-apps/vehicle-server/files/
+cp ~/Proyecto1-Empotrados/vehicle-server/gpio_wrapper.py ~/poky/meta-myconfig/recipes-apps/vehicle-server/files/
+
+mkdir -p ~/poky/meta-myconfig/recipes-apps/vehicle-server/files/templates
+cp ~/Proyecto1-Empotrados/vehicle-server/templates/*.html ~/poky/meta-myconfig/recipes-apps/vehicle-server/files/templates/
+
+mkdir -p ~/poky/meta-myconfig/recipes-apps/vehicle-server/files/static
+cp ~/Proyecto1-Empotrados/vehicle-server/static/*.css ~/poky/meta-myconfig/recipes-apps/vehicle-server/files/static/
+cp ~/Proyecto1-Empotrados/vehicle-server/static/*.js ~/poky/meta-myconfig/recipes-apps/vehicle-server/files/static/
+```
+
+## Copiar biblioteca compilada
+```bash
+mkdir -p ~/poky/meta-myconfig/recipes-support/gpioio/files
+cp ~/Proyecto1-Empotrados/gpioio/build/lib/libgpioio.so.1 ~/poky/meta-myconfig/recipes-support/gpioio/files/
+```
