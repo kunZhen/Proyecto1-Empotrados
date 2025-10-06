@@ -2,6 +2,9 @@ from flask import Flask, render_template, jsonify, Response, request
 import subprocess
 import time
 from gpio_wrapper import VehicleController
+import base64
+from datetime import datetime
+import threading
 
 app = Flask(__name__)
 
@@ -13,8 +16,13 @@ except Exception as e:
     print(f"Error initializing vehicle: {e}")
     vehicle = None
 
+last_frame = None
+last_frame_lock = threading.Lock()
+
 def generate_frames():
     """Genera frames MJPEG usando ffmpeg desde /dev/video0"""
+    global last_frame
+    
     cmd = ['ffmpeg', 
            '-f', 'v4l2',
            '-input_format', 'mjpeg',
@@ -41,19 +49,22 @@ def generate_frames():
             
             buffer += chunk
             
-            # Busca frames JPEG completos
             while True:
-                start = buffer.find(b'\xff\xd8')  # Inicio JPEG
+                start = buffer.find(b'\xff\xd8')
                 if start == -1:
                     buffer = buffer[-2:]
                     break
                 
-                end = buffer.find(b'\xff\xd9', start)  # Fin JPEG
+                end = buffer.find(b'\xff\xd9', start)
                 if end == -1:
                     break
                 
                 frame = buffer[start:end+2]
                 buffer = buffer[end+2:]
+                
+                # Guarda el último frame
+                with last_frame_lock:
+                    last_frame = frame
                 
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
@@ -106,6 +117,52 @@ def status():
         'vehicle_initialized': vehicle is not None,
         'camera_active': True
     })
+
+@app.route('/api/capture', methods=['POST'])
+def capture_image():
+    """Captura el frame actual del stream"""
+    global last_frame
+    
+    try:
+        with last_frame_lock:
+            if last_frame is None:
+                return jsonify({'error': 'No frame available'}), 500
+            frame_data = last_frame
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"capture_{timestamp}.jpg"
+        filepath = f"/root/captures/{filename}"
+        
+        # Crea directorio si no existe
+        subprocess.run(['mkdir', '-p', '/root/captures'], check=True)
+        
+        # Guarda el frame
+        with open(filepath, 'wb') as f:
+            f.write(frame_data)
+        
+        # Convierte a base64 para mostrar
+        img_data = base64.b64encode(frame_data).decode('utf-8')
+        
+        return jsonify({
+            'status': 'success',
+            'filename': filename,
+            'image': img_data
+        })
+            
+    except Exception as e:
+        print(f"Exception in capture: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/captures')
+def list_captures():
+    """Lista todas las capturas guardadas"""
+    try:
+        result = subprocess.run(['ls', '-1', '/root/captures/'], 
+                               capture_output=True, text=True)
+        files = result.stdout.strip().split('\n') if result.stdout else []
+        return jsonify({'captures': files})
+    except:
+        return jsonify({'captures': []})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)

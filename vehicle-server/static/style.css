@@ -200,3 +200,43 @@ h1 {
     border: 2px solid #667eea;
     border-radius: 5px;
 }
+
+.capture-section {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.capture-btn {
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.capture-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.captured-image {
+    margin-top: 20px;
+    max-width: 100%;
+}
+
+.captured-image img {
+    max-width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+
+.captured-image p {
+    margin-top: 10px;
+    color: #4CAF50;
+    font-weight: bold;
+}

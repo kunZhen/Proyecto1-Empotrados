@@ -173,3 +173,37 @@ updateStatus = function(action) {
 
 // Dibuja PWM inicial
 drawPWM(currentSpeed);
+
+// Captura de imagen
+document.getElementById('btn-capture').addEventListener('click', async () => {
+    const captureBtn = document.getElementById('btn-capture');
+    const capturedImageDiv = document.getElementById('captured-image');
+    
+    captureBtn.disabled = true;
+    captureBtn.textContent = '📷 Capturando...';
+    
+    try {
+        const response = await fetch('/api/capture', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            capturedImageDiv.innerHTML = `
+                <p>✓ Imagen capturada: ${data.filename}</p>
+                <img src="data:image/jpeg;base64,${data.image}" alt="Captured">
+            `;
+        } else {
+            capturedImageDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+        }
+    } catch (error) {
+        capturedImageDiv.innerHTML = `<p style="color: red;">Error de conexión</p>`;
+    } finally {
+        captureBtn.disabled = false;
+        captureBtn.textContent = '📷 Capturar Imagen';
+    }
+});
