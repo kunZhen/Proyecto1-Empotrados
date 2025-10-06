@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-// Definiciones de pines para L298N
 #define MOTOR_A_IN1  18
 #define MOTOR_A_IN2  19
 #define MOTOR_A_ENA  12
@@ -11,134 +10,82 @@
 #define MOTOR_B_IN4  21
 #define MOTOR_B_ENB  13
 
-// Funciones de control de motores
-int motor_init(void) {
-    // Configura todos los pines como salida
-    if (pinMode(MOTOR_A_IN1, OUTPUT) < 0 ||
-        pinMode(MOTOR_A_IN2, OUTPUT) < 0 ||
-        pinMode(MOTOR_A_ENA, OUTPUT) < 0 ||
-        pinMode(MOTOR_B_IN3, OUTPUT) < 0 ||
-        pinMode(MOTOR_B_IN4, OUTPUT) < 0 ||
-        pinMode(MOTOR_B_ENB, OUTPUT) < 0) {
-        return -1;
-    }
-    
-    // Inicializa todos en 0 (motores detenidos)
-    digitalWrite(MOTOR_A_IN1, 0);
-    digitalWrite(MOTOR_A_IN2, 0);
-    digitalWrite(MOTOR_A_ENA, 0);
-    digitalWrite(MOTOR_B_IN3, 0);
-    digitalWrite(MOTOR_B_IN4, 0);
-    digitalWrite(MOTOR_B_ENB, 0);
-    
-    return 0;
-}
-
-void motor_forward(void) {
-    printf("Motores: Adelante\n");
-    // Motor A adelante
-    digitalWrite(MOTOR_A_IN1, 1);
-    digitalWrite(MOTOR_A_IN2, 0);
-    digitalWrite(MOTOR_A_ENA, 1);
-    
-    // Motor B adelante  
-    digitalWrite(MOTOR_B_IN3, 1);
-    digitalWrite(MOTOR_B_IN4, 0);
-    digitalWrite(MOTOR_B_ENB, 1);
-}
-
-void motor_backward(void) {
-    printf("Motores: Atrás\n");
-    // Motor A atrás
-    digitalWrite(MOTOR_A_IN1, 0);
-    digitalWrite(MOTOR_A_IN2, 1);
-    digitalWrite(MOTOR_A_ENA, 1);
-    
-    // Motor B atrás
-    digitalWrite(MOTOR_B_IN3, 0);
-    digitalWrite(MOTOR_B_IN4, 1);
-    digitalWrite(MOTOR_B_ENB, 1);
-}
-
-void motor_left(void) {
-    printf("Motores: Izquierda\n");
-    // Motor A detenido/lento, Motor B adelante
-    digitalWrite(MOTOR_A_IN1, 0);
-    digitalWrite(MOTOR_A_IN2, 0);
-    digitalWrite(MOTOR_A_ENA, 0);
-    
-    digitalWrite(MOTOR_B_IN3, 1);
-    digitalWrite(MOTOR_B_IN4, 0);
-    digitalWrite(MOTOR_B_ENB, 1);
-}
-
-void motor_right(void) {
-    printf("Motores: Derecha\n");
-    // Motor A adelante, Motor B detenido/lento
-    digitalWrite(MOTOR_A_IN1, 1);
-    digitalWrite(MOTOR_A_IN2, 0);
-    digitalWrite(MOTOR_A_ENA, 1);
-    
-    digitalWrite(MOTOR_B_IN3, 0);
-    digitalWrite(MOTOR_B_IN4, 0);
-    digitalWrite(MOTOR_B_ENB, 0);
-}
-
-void motor_stop(void) {
-    printf("Motores: Detenidos\n");
-    digitalWrite(MOTOR_A_IN1, 0);
-    digitalWrite(MOTOR_A_IN2, 0);
-    digitalWrite(MOTOR_A_ENA, 0);
-    digitalWrite(MOTOR_B_IN3, 0);
-    digitalWrite(MOTOR_B_IN4, 0);
-    digitalWrite(MOTOR_B_ENB, 0);
-}
-
 int main(void) {
     printf("=== Prueba de Control de Motores ===\n");
     
-    if (motor_init() < 0) {
-        perror("Error inicializando motores");
+    motor_t motorA, motorB;
+    
+    // Inicializa motores usando tu API
+    if (motorInit(&motorA, MOTOR_A_IN1, MOTOR_A_IN2, MOTOR_A_ENA, NULL) < 0) {
+        perror("Error inicializando motor A");
         return 1;
     }
     
-    printf("Motores inicializados correctamente\n");
+    if (motorInit(&motorB, MOTOR_B_IN3, MOTOR_B_IN4, MOTOR_B_ENB, NULL) < 0) {
+        perror("Error inicializando motor B");
+        return 1;
+    }
     
-    // Secuencia de prueba
-    printf("\nIniciando secuencia de prueba...\n");
+    printf("Motores inicializados\n\n");
+
+    // Después de inicializar motores...
+
+    printf("Probando velocidades...\n");
+    for (int speed = 0; speed <= 100; speed += 25) {
+        printf("Velocidad: %d%%\n", speed);
+        motorSetDirection(&motorA, MOTOR_FORWARD);
+        motorSetDirection(&motorB, MOTOR_FORWARD);
+        motorSetSpeed(&motorA, speed);
+        motorSetSpeed(&motorB, speed);
+        sleep(2);
+    }
+    motorStop(&motorA);
+    motorStop(&motorB);
     
-    // Adelante 2 segundos
-    motor_forward();
+    // Adelante
+    printf("Adelante...\n");
+    motorSetDirection(&motorA, MOTOR_FORWARD);
+    motorSetDirection(&motorB, MOTOR_FORWARD);
+    motorSetSpeed(&motorA, 100);
+    motorSetSpeed(&motorB, 100);
     sleep(2);
     
-    // Stop 1 segundo
-    motor_stop();
+    // Stop
+    printf("Stop...\n");
+    motorStop(&motorA);
+    motorStop(&motorB);
     sleep(1);
     
-    // Atrás 2 segundos
-    motor_backward();
+    // Atrás
+    printf("Atrás...\n");
+    motorSetDirection(&motorA, MOTOR_BACKWARD);
+    motorSetDirection(&motorB, MOTOR_BACKWARD);
+    motorSetSpeed(&motorA, 100);
+    motorSetSpeed(&motorB, 100);
     sleep(2);
     
-    // Stop 1 segundo
-    motor_stop();
+    // Stop
+    motorStop(&motorA);
+    motorStop(&motorB);
     sleep(1);
     
-    // Izquierda 2 segundos
-    motor_left();
+    // Giro izquierda (motor A solo)
+    printf("Izquierda...\n");
+    motorSetDirection(&motorA, MOTOR_FORWARD);
+    motorSetSpeed(&motorA, 100);
     sleep(2);
     
-    // Stop 1 segundo
-    motor_stop();
+    motorStop(&motorA);
     sleep(1);
     
-    // Derecha 2 segundos
-    motor_right();
+    // Giro derecha (motor B solo)
+    printf("Derecha...\n");
+    motorSetDirection(&motorB, MOTOR_FORWARD);
+    motorSetSpeed(&motorB, 100);
     sleep(2);
     
-    // Stop final
-    motor_stop();
+    motorStop(&motorB);
     
     printf("\n¡Prueba completada!\n");
-    
     return 0;
 }
