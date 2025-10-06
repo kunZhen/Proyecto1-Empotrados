@@ -1,12 +1,56 @@
-from flask import Flask, render_template, jsonify, Response, request
+from flask import Flask, render_template, jsonify, Response, request, redirect, url_for, session
 import subprocess
 import time
 from gpio_wrapper import VehicleController
 import base64
 from datetime import datetime
 import threading
+import hashlib
 
 app = Flask(__name__)
+app.secret_key = 'your-secret-key-change-this-in-production'  # Cambia esto
+
+# Usuario hardcoded 
+USERS = {
+    'admin': hashlib.sha256('admin123'.encode()).hexdigest()
+}
+
+def login_required(f):
+    """Decorador para requerir login"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        
+        if username in USERS and USERS[username] == password_hash:
+            session['username'] = username
+            return redirect(url_for('index'))
+        else:
+            return render_template('login.html', error='Usuario o contraseña incorrectos')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect(url_for('login'))
+
+# Protege la ruta principal
+@app.route('/')
+@login_required
+def index():
+    return render_template('index.html', username=session.get('username'))
 
 # Inicializa el controlador del vehículo
 try:
