@@ -1,0 +1,16 @@
+[Unit]
+Description=Vehicle Control Web Server
+After=network.target wifi-autostart.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/vehicle-server
+ExecStart=/usr/bin/python3 /root/vehicle-server/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
