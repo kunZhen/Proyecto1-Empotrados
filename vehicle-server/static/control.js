@@ -207,3 +207,23 @@ document.getElementById('btn-capture').addEventListener('click', async () => {
         captureBtn.textContent = '📷 Capturar Imagen';
     }
 });
+
+// Monitoreo de ultrasonido
+setInterval(async () => {
+    try {
+        const response = await fetch('/api/ultrasonic');
+        const data = await response.json();
+        
+        document.getElementById('distance-value').textContent = 
+            data.distance > 0 ? data.distance : '--';
+        
+        const alert = document.getElementById('obstacle-alert');
+        if (data.obstacle_detected) {
+            alert.style.display = 'block';
+        } else {
+            alert.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Ultrasonic error:', error);
+    }
+}, 200); // Actualiza cada 200ms

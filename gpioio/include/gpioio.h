@@ -76,6 +76,7 @@ int vehicleLeft(vehicle_t* vehicle, int speed);
 int vehicleRight(vehicle_t* vehicle, int speed);
 int vehicleStop(vehicle_t* vehicle);
 
+int ultrasonicRead(int trigger_pin, int echo_pin);  // Retorna distancia en cm
 
 #ifdef __cplusplus
 }

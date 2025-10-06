@@ -164,5 +164,20 @@ def list_captures():
     except:
         return jsonify({'captures': []})
 
+@app.route('/api/ultrasonic')
+def get_ultrasonic():
+    """Obtiene distancia actual del sensor"""
+    if not vehicle:
+        return jsonify({'error': 'Vehicle not initialized'}), 500
+    
+    distance = vehicle.get_distance()
+    obstacle_detected = 0 < distance < vehicle.obstacle_threshold
+    
+    return jsonify({
+        'distance': distance,
+        'obstacle_detected': obstacle_detected,
+        'threshold': vehicle.obstacle_threshold
+    })
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)

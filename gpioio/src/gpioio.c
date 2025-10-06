@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <limits.h>
+#include <sys/time.h>
 
 static int write_str(const char *path, const char *s) {
     int fd = open(path, O_WRONLY);
@@ -492,4 +493,44 @@ int vehicleStop(vehicle_t* vehicle) {
     motorStop(vehicle->motor_left);
     motorStop(vehicle->motor_right);
     return 0;
+}
+
+int ultrasonicRead(int trigger_pin, int echo_pin) {
+    struct timeval start, end;
+    long elapsed_us;
+    
+    // Asegura que los pines estén configurados
+    pinMode(trigger_pin, OUTPUT);
+    pinMode(echo_pin, INPUT);
+    
+    // Envía pulso de trigger (10us)
+    digitalWrite(trigger_pin, 0);
+    usleep(2);
+    digitalWrite(trigger_pin, 1);
+    usleep(10);
+    digitalWrite(trigger_pin, 0);
+    
+    // Espera a que echo sea HIGH (timeout 30ms)
+    int timeout = 30000; // 30ms
+    while (digitalRead(echo_pin) == 0 && timeout-- > 0) {
+        usleep(1);
+    }
+    if (timeout <= 0) return -1;
+    
+    gettimeofday(&start, NULL);
+    
+    // Espera a que echo sea LOW (timeout 30ms)
+    timeout = 30000;
+    while (digitalRead(echo_pin) == 1 && timeout-- > 0) {
+        usleep(1);
+    }
+    if (timeout <= 0) return -1;
+    
+    gettimeofday(&end, NULL);
+    
+    // Calcula distancia: tiempo (us) * velocidad sonido (343 m/s) / 2
+    elapsed_us = (end.tv_sec - start.tv_sec) * 1000000 + 
+                 (end.tv_usec - start.tv_usec);
+    
+    return (int)(elapsed_us / 58.0); // Distancia en cm
 }

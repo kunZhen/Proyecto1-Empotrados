@@ -7,6 +7,10 @@ import time
 lib_path = "/root/gpioio/lib/libgpioio.so.1"
 gpiolib = ctypes.CDLL(lib_path)
 
+gpiolib.ultrasonicRead.argtypes = [ctypes.c_int, ctypes.c_int]
+gpiolib.ultrasonicRead.restype = ctypes.c_int
+
+
 # Define estructuras C en Python
 class VehicleLEDs(ctypes.Structure):
     _fields_ = [
@@ -187,6 +191,31 @@ class VehicleController:
         self.pwm_right.start(0)
         
         print("PWM software initialized for motors")
+
+        # Configura ultrasonido
+        self.ultrasonic_trigger = 5  # GPIO 5
+        self.ultrasonic_echo = 6     # GPIO 6
+        self.obstacle_threshold = 20  # cm
+        
+        # Thread para monitoreo
+        self.monitoring = True
+        self.monitor_thread = threading.Thread(target=self._monitor_obstacles, daemon=True)
+        self.monitor_thread.start()
+        
+        print("Ultrasonic sensor initialized")
+
+    def get_distance(self):
+        """Lee distancia del sensor ultrasónico"""
+        return gpiolib.ultrasonicRead(self.ultrasonic_trigger, self.ultrasonic_echo)
+    
+    def _monitor_obstacles(self):
+        """Monitorea obstáculos continuamente"""
+        while self.monitoring:
+            distance = self.get_distance()
+            if 0 < distance < self.obstacle_threshold:
+                # Guarda última detección
+                self.last_obstacle_distance = distance
+            time.sleep(0.1)  # Lee cada 100ms
     
     def forward(self, speed=80):
         gpiolib.vehicleForward(ctypes.byref(self.vehicle), 100)
@@ -217,3 +246,4 @@ class VehicleController:
         self.pwm_left.change_duty_cycle(0)
         self.pwm_right.change_duty_cycle(0)
         return 0
+        

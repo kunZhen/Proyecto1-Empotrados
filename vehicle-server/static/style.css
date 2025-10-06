@@ -240,3 +240,33 @@ h1 {
     color: #4CAF50;
     font-weight: bold;
 }
+
+.ultrasonic-display {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.distance-display {
+    font-size: 48px;
+    font-weight: bold;
+    color: #667eea;
+    margin: 20px 0;
+}
+
+.obstacle-alert {
+    padding: 15px;
+    background: #ff6b6b;
+    color: white;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 20px;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
