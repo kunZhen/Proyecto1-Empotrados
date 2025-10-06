@@ -1,5 +1,7 @@
 import ctypes
 import os
+import threading
+import time
 
 # Carga la biblioteca compartida
 lib_path = "/root/gpioio/lib/libgpioio.so.1"
@@ -71,6 +73,68 @@ gpiolib.vehicleRight.restype = ctypes.c_int
 gpiolib.vehicleStop.argtypes = [ctypes.POINTER(Vehicle)]
 gpiolib.vehicleStop.restype = ctypes.c_int
 
+gpiolib.pinMode.argtypes = [ctypes.c_int, ctypes.c_int]
+gpiolib.pinMode.restype = ctypes.c_int
+
+gpiolib.digitalWrite.argtypes = [ctypes.c_int, ctypes.c_int]
+gpiolib.digitalWrite.restype = ctypes.c_int
+
+# Clase PWM por software
+class SoftwarePWM:
+    def __init__(self, gpio, frequency=1000):
+        self.gpio = gpio
+        self.frequency = frequency
+        self.duty_cycle = 0
+        self.running = False
+        self.thread = None
+        self.lock = threading.Lock()
+        
+        # Configura GPIO como salida
+        gpiolib.pinMode(gpio, 1)  # OUTPUT
+        gpiolib.digitalWrite(gpio, 0)
+        
+    def start(self, duty_cycle=0):
+        with self.lock:
+            self.duty_cycle = duty_cycle
+            if not self.running:
+                self.running = True
+                self.thread = threading.Thread(target=self._pwm_thread, daemon=True)
+                self.thread.start()
+    
+    def change_duty_cycle(self, duty_cycle):
+        with self.lock:
+            self.duty_cycle = max(0, min(100, duty_cycle))
+        
+    def stop(self):
+        with self.lock:
+            self.running = False
+        if self.thread:
+            self.thread.join(timeout=0.5)
+        gpiolib.digitalWrite(self.gpio, 0)
+    
+    def _pwm_thread(self):
+        period = 1.0 / self.frequency
+        while True:
+            with self.lock:
+                if not self.running:
+                    break
+                current_duty = self.duty_cycle
+            
+            if current_duty > 0:
+                on_time = period * (current_duty / 100.0)
+                off_time = period - on_time
+                
+                if on_time > 0.0001:  # Evita sleeps muy cortos
+                    gpiolib.digitalWrite(self.gpio, 1)
+                    time.sleep(on_time)
+                
+                if off_time > 0.0001:
+                    gpiolib.digitalWrite(self.gpio, 0)
+                    time.sleep(off_time)
+            else:
+                gpiolib.digitalWrite(self.gpio, 0)
+                time.sleep(period)
+
 # Wrapper class
 class VehicleController:
     def __init__(self):
@@ -91,7 +155,7 @@ class VehicleController:
         if ret < 0:
             raise Exception("Failed to initialize LEDs")
         
-        # Inicializa motores
+        # Inicializa motores (sin PWM hardware)
         ret = gpiolib.motorInit(
             ctypes.byref(self.motor_left),
             18, 19, 12,  # Motor izquierdo
@@ -115,18 +179,41 @@ class VehicleController:
             ctypes.byref(self.motor_right),
             ctypes.byref(self.leds)
         )
+        
+        # Crea PWM por software para control de velocidad
+        self.pwm_left = SoftwarePWM(12, frequency=1000)
+        self.pwm_right = SoftwarePWM(13, frequency=1000)
+        self.pwm_left.start(0)
+        self.pwm_right.start(0)
+        
+        print("PWM software initialized for motors")
     
     def forward(self, speed=80):
-        return gpiolib.vehicleForward(ctypes.byref(self.vehicle), speed)
+        gpiolib.vehicleForward(ctypes.byref(self.vehicle), 100)
+        self.pwm_left.change_duty_cycle(speed)
+        self.pwm_right.change_duty_cycle(speed)
+        return 0
     
     def backward(self, speed=80):
-        return gpiolib.vehicleBackward(ctypes.byref(self.vehicle), speed)
+        gpiolib.vehicleBackward(ctypes.byref(self.vehicle), 100)
+        self.pwm_left.change_duty_cycle(speed)
+        self.pwm_right.change_duty_cycle(speed)
+        return 0
     
     def left(self, speed=80):
-        return gpiolib.vehicleLeft(ctypes.byref(self.vehicle), speed)
+        gpiolib.vehicleLeft(ctypes.byref(self.vehicle), 100)
+        self.pwm_left.change_duty_cycle(0)
+        self.pwm_right.change_duty_cycle(speed)
+        return 0
     
     def right(self, speed=80):
-        return gpiolib.vehicleRight(ctypes.byref(self.vehicle), speed)
+        gpiolib.vehicleRight(ctypes.byref(self.vehicle), 100)
+        self.pwm_left.change_duty_cycle(speed)
+        self.pwm_right.change_duty_cycle(0)
+        return 0
     
     def stop(self):
-        return gpiolib.vehicleStop(ctypes.byref(self.vehicle))
+        gpiolib.vehicleStop(ctypes.byref(self.vehicle))
+        self.pwm_left.change_duty_cycle(0)
+        self.pwm_right.change_duty_cycle(0)
+        return 0

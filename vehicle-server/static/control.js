@@ -39,7 +39,6 @@ async function sendCommand(action) {
     }
 }
 
-// Actualizar texto de estado
 function updateStatus(action) {
     const statusMap = {
         'forward': 'Avanzando',
@@ -49,6 +48,35 @@ function updateStatus(action) {
         'stop': 'Detenido'
     };
     statusText.textContent = statusMap[action] || 'Desconocido';
+    
+    // Actualiza indicadores visuales de dirección
+    document.querySelectorAll('.direction-arrow').forEach(arrow => {
+        arrow.classList.remove('active');
+    });
+    
+    const arrowMap = {
+        'forward': 'arrow-forward',
+        'backward': 'arrow-backward',
+        'left': 'arrow-left',
+        'right': 'arrow-right',
+        'stop': 'arrow-center'
+    };
+    
+    if (arrowMap[action]) {
+        document.getElementById(arrowMap[action]).classList.add('active');
+    }
+    
+    // Actualiza velocímetro visual
+    const speedDisplay = document.getElementById('speed-display');
+    const speedBar = document.getElementById('speed-bar');
+    
+    if (action === 'stop') {
+        speedDisplay.textContent = '0';
+        speedBar.style.width = '0%';
+    } else {
+        speedDisplay.textContent = currentSpeed;
+        speedBar.style.width = currentSpeed + '%';
+    }
 }
 
 // Event listeners para botones
@@ -83,3 +111,65 @@ document.addEventListener('keydown', (e) => {
             break;
     }
 });
+
+// Canvas para gráfica PWM
+const canvas = document.getElementById('pwm-wave');
+const ctx = canvas.getContext('2d');
+canvas.width = canvas.offsetWidth;
+canvas.height = 100;
+
+function drawPWM(dutyCycle) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Configuración
+    const periods = 4; // Mostrar 4 períodos
+    const periodWidth = canvas.width / periods;
+    const highTime = periodWidth * (dutyCycle / 100);
+    const lowTime = periodWidth - highTime;
+    
+    // Dibuja onda PWM
+    ctx.strokeStyle = '#667eea';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    let x = 0;
+    for (let i = 0; i < periods; i++) {
+        // High
+        ctx.moveTo(x, 80);
+        ctx.lineTo(x, 20);
+        ctx.lineTo(x + highTime, 20);
+        
+        // Low
+        ctx.lineTo(x + highTime, 80);
+        ctx.lineTo(x + periodWidth, 80);
+        
+        x += periodWidth;
+    }
+    
+    ctx.stroke();
+    
+    // Actualiza duty cycle display
+    document.getElementById('duty-cycle').textContent = dutyCycle;
+}
+
+// Llama a drawPWM cuando cambia la velocidad
+speedSlider.addEventListener('input', (e) => {
+    currentSpeed = parseInt(e.target.value);
+    speedValue.textContent = currentSpeed;
+    drawPWM(currentSpeed);
+});
+
+// Actualiza la función sendCommand para redibujar PWM
+const originalUpdateStatus = updateStatus;
+updateStatus = function(action) {
+    originalUpdateStatus(action);
+    
+    if (action === 'stop') {
+        drawPWM(0);
+    } else {
+        drawPWM(currentSpeed);
+    }
+};
+
+// Dibuja PWM inicial
+drawPWM(currentSpeed);
