@@ -1,6 +1,5 @@
 from flask import Flask, render_template, jsonify, Response, request
 import subprocess
-import threading
 import time
 from gpio_wrapper import VehicleController
 
@@ -14,52 +13,54 @@ except Exception as e:
     print(f"Error initializing vehicle: {e}")
     vehicle = None
 
-class Camera:
-    def __init__(self):
-        self.process = None
-        self.start()
+def generate_frames():
+    """Genera frames MJPEG usando ffmpeg desde /dev/video0"""
+    cmd = ['ffmpeg', 
+           '-f', 'v4l2',
+           '-input_format', 'mjpeg',
+           '-video_size', '640x480',
+           '-framerate', '30',
+           '-i', '/dev/video0',
+           '-f', 'mjpeg',
+           '-q:v', '5',
+           '-']
     
-    def start(self):
-        if self.process is None:
-            self.process = subprocess.Popen([
-                'libcamera-vid', '-t', '0',
-                '--codec', 'mjpeg',
-                '--width', '640', '--height', '480',
-                '-o', '-', '--nopreview'
-            ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
+    process = subprocess.Popen(cmd, 
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.DEVNULL, 
+                               bufsize=10**6)
     
-    def get_frame(self):
-        # Lee hasta encontrar inicio de JPEG (0xFF 0xD8)
+    buffer = b''
+    print("Camera streaming started with ffmpeg")
+    
+    try:
         while True:
-            byte = self.process.stdout.read(1)
-            if not byte:
-                return None
-            if byte == b'\xff':
-                next_byte = self.process.stdout.read(1)
-                if next_byte == b'\xd8':  # Inicio JPEG
-                    # Lee hasta fin de JPEG (0xFF 0xD9)
-                    frame = b'\xff\xd8'
-                    while True:
-                        byte = self.process.stdout.read(1)
-                        if not byte:
-                            return None
-                        frame += byte
-                        if byte == b'\xff':
-                            next_byte = self.process.stdout.read(1)
-                            if not next_byte:
-                                return None
-                            frame += next_byte
-                            if next_byte == b'\xd9':  # Fin JPEG
-                                return frame
-
-camera = Camera()
-
-def gen_frames():
-    while True:
-        frame = camera.get_frame()
-        if frame:
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            chunk = process.stdout.read(4096)
+            if not chunk:
+                break
+            
+            buffer += chunk
+            
+            # Busca frames JPEG completos
+            while True:
+                start = buffer.find(b'\xff\xd8')  # Inicio JPEG
+                if start == -1:
+                    buffer = buffer[-2:]
+                    break
+                
+                end = buffer.find(b'\xff\xd9', start)  # Fin JPEG
+                if end == -1:
+                    break
+                
+                frame = buffer[start:end+2]
+                buffer = buffer[end+2:]
+                
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    except Exception as e:
+        print(f"Stream error: {e}")
+    finally:
+        process.terminate()
 
 @app.route('/')
 def index():
@@ -67,7 +68,8 @@ def index():
 
 @app.route('/video_feed')
 def video_feed():
-    return Response(gen_frames(),
+    print("Video feed requested")
+    return Response(generate_frames(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/control', methods=['POST'])
@@ -102,7 +104,7 @@ def control():
 def status():
     return jsonify({
         'vehicle_initialized': vehicle is not None,
-        'camera_active': camera.process is not None
+        'camera_active': True
     })
 
 if __name__ == '__main__':

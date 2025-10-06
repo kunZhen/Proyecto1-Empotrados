@@ -64,3 +64,18 @@ sudo nmap -sn 192.168.100.0/24
 ```bash
 nano ~/poky/meta-myconfig/recipes-connectivity/wpa-supplicant/files/wpa_supplicant.conf-sane
 ```
+
+## Server
+cd /root/vehicle-server
+python3 app.py
+
+----------------------------Nueva cámara-----------------------------
+# Con v4l2 (driver legacy)
+v4l2-ctl --device=/dev/video0 --set-fmt-video=width=640,height=480,pixelformat=MJPG
+v4l2-ctl --device=/dev/video0 --stream-mmap --stream-to=test.jpg --stream-count=1
+
+# Verifica que se creó la imagen
+ls -lh test.jpg
+
+## Copiar imagen a mi pc
+scp root@192.168.100.234:test.jpg ~/
