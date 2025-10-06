@@ -1,0 +1,14 @@
+{
+    "henry": {
+        "email": "henryda2004@gmail.com",
+        "password": "scrypt:32768:8:1$zG2ftnU5SfFJiVn9$6a98f15a5be0130fd01fdab82965bd205edfbff834fb30357604f86326fe42148ef5f58fd2482fed4cd9f8effb345d464a6962d5d8157ad69b160eb6c470aeb1"
+    },
+    "nicole": {
+        "email": "nicolevalverde242@gmail.com",
+        "password": "scrypt:32768:8:1$k98zGONGWMKIUZ9G$b7ca7ccb439fc07014c8598ce1014089e5c5a305dfbbfeb592661e63333b5e01df11dd813f3d406432370f228c41bf0d9f8376bf769776aef3a099b8660382f0"
+    },
+    "nics": {
+        "email": "marvalverde@estudiantec.cr",
+        "password": "scrypt:32768:8:1$V8KVWRYCr5XmB2pX$698b947bcebce8c0f2aa08cc4f7f4d9895abb14a99e7e61f19c84589239feeb0b097f823ef98cbf2bbf1252f90c42c85f1008da867e4e1927986843fca30edf7"
+    }
+}

@@ -1,0 +1,127 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to right, #001F3F, #004466);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-attachment: fixed;
+  background-size: cover;
+  color: #dce6f0;
+}
+
+.container {
+  background: #3D4D61;
+  padding: 40px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0px 8px 25px rgba(0,0,0,0.5);
+  width: 400px;
+}
+
+.logo {
+  width: 260px;
+  margin-bottom: 20px;
+}
+
+/* Título principal */
+h1 {
+  font-size: 2em;
+  margin-bottom: 10px;
+  color: #022B45; /* nuevo color */
+  font-weight: bold;
+}
+
+/* Subtítulo */
+h2 {
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+
+input {
+  width: 90%;
+  padding: 10px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 8px;
+  outline: none;
+}
+
+button {
+  width: 95%;
+  padding: 12px;
+  background: #022B45; /* nuevo color */
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #011c2b; /* un poco más oscuro */
+}
+
+a {
+  color: #022B45; /* nuevo color */
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.error {
+  color: #ff8080;
+  margin-top: 10px;
+}
+
+/* Contenedor de las tarjetas */
+.card-container {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 30px;
+}
+
+/* Tarjeta individual */
+.card {
+  background: #3D4D61;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  width: 150px;
+  cursor: pointer;
+  transition: transform 0.3s, background 0.3s;
+  box-shadow: 0px 4px 15px rgba(0,0,0,0.3);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  background: #022B45;
+}
+
+/* Icono grande */
+.icon {
+  font-size: 50px;
+  margin-bottom: 10px;
+}
+
+/* Botón de logout */
+.logout {
+  display: inline-block;
+  margin-top: 30px;
+  color: #fff;
+  background: #022B45;
+  padding: 10px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.logout:hover {
+  background: #011c2b;
+}
