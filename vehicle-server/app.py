@@ -222,5 +222,46 @@ def get_ultrasonic():
         'threshold': vehicle.obstacle_threshold
     })
 
+@app.route('/api/lights/mode', methods=['POST'])
+@login_required
+def lights_mode():
+    if not vehicle:
+        return jsonify({'error': 'Vehicle not initialized'}), 500
+    
+    data = request.json
+    auto_mode = data.get('auto', True)
+    
+    vehicle.set_lights_mode(auto_mode)
+    
+    return jsonify({'status': 'success', 'auto_mode': auto_mode})
+
+@app.route('/api/lights/control', methods=['POST'])
+@login_required
+def lights_control():
+    if not vehicle:
+        return jsonify({'error': 'Vehicle not initialized'}), 500
+    
+    data = request.json
+    action = data.get('action')
+    
+    result = 0
+    if action == 'front':
+        result = vehicle.lights_front()
+    elif action == 'back':
+        result = vehicle.lights_back()
+    elif action == 'left':
+        result = vehicle.lights_left()
+    elif action == 'right':
+        result = vehicle.lights_right()
+    elif action == 'off':
+        result = vehicle.lights_off()
+    else:
+        return jsonify({'error': 'Invalid action'}), 400
+    
+    if result < 0:
+        return jsonify({'error': 'Command failed'}), 500
+    
+    return jsonify({'status': 'success', 'action': action})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)

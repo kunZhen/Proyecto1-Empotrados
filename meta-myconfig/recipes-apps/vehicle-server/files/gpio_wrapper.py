@@ -7,8 +7,6 @@ import time
 lib_path = "/root/gpioio/lib/libgpioio.so.1"
 gpiolib = ctypes.CDLL(lib_path)
 
-gpiolib.ultrasonicRead.argtypes = [ctypes.c_int, ctypes.c_int]
-gpiolib.ultrasonicRead.restype = ctypes.c_int
 
 
 # Define estructuras C en Python
@@ -47,6 +45,21 @@ gpiolib.ledsInit.argtypes = [
 ]
 gpiolib.ledsInit.restype = ctypes.c_int
 
+gpiolib.ledsFrontOn.argtypes = [ctypes.POINTER(VehicleLEDs)]
+gpiolib.ledsFrontOn.restype = ctypes.c_int
+
+gpiolib.ledsBackOn.argtypes = [ctypes.POINTER(VehicleLEDs)]
+gpiolib.ledsBackOn.restype = ctypes.c_int
+
+gpiolib.ledsLeftOn.argtypes = [ctypes.POINTER(VehicleLEDs)]
+gpiolib.ledsLeftOn.restype = ctypes.c_int
+
+gpiolib.ledsRightOn.argtypes = [ctypes.POINTER(VehicleLEDs)]
+gpiolib.ledsRightOn.restype = ctypes.c_int
+
+gpiolib.ledsAllOff.argtypes = [ctypes.POINTER(VehicleLEDs)]
+gpiolib.ledsAllOff.restype = ctypes.c_int
+
 gpiolib.motorInit.argtypes = [
     ctypes.POINTER(Motor),
     ctypes.c_int, ctypes.c_int, ctypes.c_int,
@@ -82,6 +95,10 @@ gpiolib.pinMode.restype = ctypes.c_int
 
 gpiolib.digitalWrite.argtypes = [ctypes.c_int, ctypes.c_int]
 gpiolib.digitalWrite.restype = ctypes.c_int
+
+gpiolib.ultrasonicRead.argtypes = [ctypes.c_int, ctypes.c_int]
+gpiolib.ultrasonicRead.restype = ctypes.c_int
+
 
 # Clase PWM por software
 class SoftwarePWM:

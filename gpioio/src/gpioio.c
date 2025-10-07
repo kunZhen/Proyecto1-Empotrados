@@ -469,7 +469,7 @@ int vehicleBackward(vehicle_t* vehicle, int speed) {
 
 int vehicleLeft(vehicle_t* vehicle, int speed) {
     if (!vehicle) return -1;
-    ledsLeftOn(vehicle->leds);
+    ledsRightOn(vehicle->leds);
     motorSetDirection(vehicle->motor_left, MOTOR_STOP);
     motorSetDirection(vehicle->motor_right, MOTOR_FORWARD);
     motorSetSpeed(vehicle->motor_left, 0);
@@ -479,7 +479,7 @@ int vehicleLeft(vehicle_t* vehicle, int speed) {
 
 int vehicleRight(vehicle_t* vehicle, int speed) {
     if (!vehicle) return -1;
-    ledsRightOn(vehicle->leds);
+    ledsLeftOn(vehicle->leds);
     motorSetDirection(vehicle->motor_left, MOTOR_FORWARD);
     motorSetDirection(vehicle->motor_right, MOTOR_STOP);
     motorSetSpeed(vehicle->motor_left, speed);
