@@ -17,7 +17,7 @@ inherit systemd
 SYSTEMD_SERVICE:${PN} = "vehicle-server.service"
 SYSTEMD_AUTO_ENABLE = "enable"
 
-RDEPENDS:${PN} = "python3 python3-flask"
+RDEPENDS:${PN} = "python3 python3-flask gpioio"
 
 do_install() {
     # Instala archivos del servidor
@@ -37,4 +37,4 @@ do_install() {
     install -m 0644 ${WORKDIR}/vehicle-server.service ${D}${systemd_system_unitdir}/
 }
 
-FILES:${PN} += "/root/vehicle-server"
+FILES:${PN} += "/root/vehicle-server ${systemd_system_unitdir}/vehicle-server.service"

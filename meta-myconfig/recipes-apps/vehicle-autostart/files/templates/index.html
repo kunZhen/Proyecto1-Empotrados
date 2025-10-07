@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CEmbedded Car - Control</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="header">
+        <h1>🚗 CEmbedded Car</h1>
+        <div class="user-info">
+            <span>Usuario: {{ username }}</span>
+            <a href="/logout" class="logout-btn">Cerrar Sesión</a>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Columna Izquierda: Video y Captura -->
+        <div class="left-column">
+            <div class="video-box">
+                <img src="/video_feed" alt="Video Stream">
+            </div>
+            
+            <button id="btn-capture" class="capture-btn">📷 Capturar Imagen</button>
+            <div id="captured-image" class="captured-image"></div>
+        </div>
+
+        <!-- Columna Derecha: Controles -->
+        <div class="right-column">
+            <!-- Controles de Movimiento -->
+            <div class="section">
+                <h3>🎮 Control de Movimiento</h3>
+                
+                <!-- Indicador visual de dirección -->
+                <div class="direction-indicator">
+                    <div class="direction-arrow" id="arrow-empty1"></div>
+                    <div class="direction-arrow" id="arrow-forward">▲</div>
+                    <div class="direction-arrow" id="arrow-empty2"></div>
+                    <div class="direction-arrow" id="arrow-left">◄</div>
+                    <div class="direction-arrow" id="arrow-center">●</div>
+                    <div class="direction-arrow" id="arrow-right">►</div>
+                    <div class="direction-arrow" id="arrow-empty3"></div>
+                    <div class="direction-arrow" id="arrow-backward">▼</div>
+                    <div class="direction-arrow" id="arrow-empty4"></div>
+                </div>
+                
+                <div class="controls">
+                    <button id="btn-forward" class="control-btn">▲</button>
+                    <div class="control-row-middle">
+                        <button id="btn-left" class="control-btn">◄</button>
+                        <button id="btn-stop" class="control-btn stop">■</button>
+                        <button id="btn-right" class="control-btn">►</button>
+                    </div>
+                    <button id="btn-backward" class="control-btn">▼</button>
+                </div>
+            </div>
+
+            <!-- Velocímetro -->
+            <div class="section">
+                <h3>⚡ Velocidad</h3>
+                <div class="speed-number" id="speed-display">0</div>
+                <div class="speed-bar-container">
+                    <div class="speed-bar" id="speed-bar" style="width: 0%"></div>
+                </div>
+                <div class="speed-control">
+                    <label>Control: <span id="speed-value">80</span>%</label>
+                    <input type="range" id="speed-slider" min="0" max="100" value="80">
+                </div>
+            </div>
+
+            <!-- PWM -->
+            <div class="section">
+                <h3>📊 Señal PWM - Duty: <span id="duty-cycle">0</span>%</h3>
+                <canvas id="pwm-wave" class="pwm-wave"></canvas>
+            </div>
+
+            <!-- Ultrasonido -->
+            <div class="section">
+                <h3>📡 Sensor de Proximidad</h3>
+                <div class="distance-display">
+                    <span id="distance-value">--</span> cm
+                </div>
+                <div class="obstacle-alert" id="obstacle-alert" style="display: none;">
+                    ⚠️ OBSTÁCULO DETECTADO
+                </div>
+            </div>
+
+            <!-- Control de Luces -->
+            <div class="section">
+                <h3>💡 Control de Luces</h3>
+                <div class="lights-mode">
+                    <label><input type="radio" name="lights-mode" value="auto" checked> Auto</label>
+                    <label><input type="radio" name="lights-mode" value="manual"> Manual</label>
+                </div>
+                <div class="manual-lights" id="manual-lights" style="display: none;">
+                    <button class="light-btn" data-light="front">Delanteras</button>
+                    <button class="light-btn" data-light="back">Traseras</button>
+                    <button class="light-btn" data-light="left">Izquierdas</button>
+                    <button class="light-btn" data-light="right">Derechas</button>
+                    <button class="light-btn off" data-light="off">Apagar</button>
+                </div>
+            </div>
+
+            <!-- Estado -->
+            <div class="section">
+                <div class="status">
+                    <p>Estado: <span id="status-text">Detenido</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/control.js"></script>
+</body>
+</html>
