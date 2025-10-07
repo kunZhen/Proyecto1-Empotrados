@@ -12,17 +12,25 @@
 #include <limits.h>
 #include <sys/time.h>
 
+/* ==========================
+ * Utilidades de E/S en sysfs
+ * ========================== */
+
+/* Escribe una cadena 's' en el archivo 'path'.
+   Devuelve 0 en éxito o -1 en error y conserva errno del write(). */
 static int write_str(const char *path, const char *s) {
     int fd = open(path, O_WRONLY);
     if (fd < 0) return -1;
     ssize_t n = write(fd, s, strlen(s));
     int e = (n < 0) ? -1 : 0;
-    int saved = errno;
+    int saved = errno; // preserva errno real del write
     close(fd);
     errno = saved;
     return e;
 }
 
+/* Lee hasta bufsz-1 bytes de 'path' y pone terminador NUL.
+   Devuelve 0 en éxito o -1 en error y conserva errno del read(). */
 static int read_str(const char *path, char *buf, size_t bufsz) {
     int fd = open(path, O_RDONLY);
     if (fd < 0) return -1;
@@ -35,12 +43,14 @@ static int read_str(const char *path, char *buf, size_t bufsz) {
     return e;
 }
 
+/* Verifica existencia de un path (stat == 0). */
 static int path_exists(const char *p) {
     struct stat st;
     return stat(p, &st) == 0;
 }
 
-/* Espera hasta ms_timeout a que exista "path" */
+/* Espera hasta ms_timeout para que exista 'path'.
+   Sondea cada 10 ms. Devuelve 0 si aparece; -1 (ETIMEDOUT) si no. */
 static int wait_for_path(const char *path, int ms_timeout) {
     const int step_ms = 10;
     int waited = 0;
@@ -54,11 +64,15 @@ static int wait_for_path(const char *path, int ms_timeout) {
     return -1;
 }
 
-/* Detecta el base del gpiochip del SoC.
-   - Si existe env GPIOIO_BASE, la usamos.
-   - Si algún label contiene "pinctrl" o "bcm", usamos ese base.
-   - Si no, usamos el base más pequeño disponible.
-   - Si todo falla, 0. */
+/* ===========================================================
+ * Descubrimiento del "base" de gpiochip para mapear BCM->sysfs
+ * ===========================================================
+ * - Usa variable de entorno GPIOIO_BASE si está presente.
+ * - Si encuentra un chip con label que contenga "pinctrl" o "bcm",
+ *   usa su base (suele funcionar en Raspberry Pi).
+ * - Si no, elige el base más pequeño (primer gpiochip del sistema).
+ * - Si nada sirve, retorna 0.
+ */
 static int gpio_base(void) {
     static int cached = INT_MIN;
     if (cached != INT_MIN) return cached;
@@ -100,8 +114,12 @@ static int gpio_base(void) {
     return cached;
 }
 
+/* Convierte un número BCM (lógico) a número físico de sysfs:
+   físico = base + bcm. */
 static int phys_gpio(int bcm) { return bcm + gpio_base(); }
 
+/* Exporta el GPIO si aún no está exportado y espera a 'direction'
+   para evitar carreras que causen EINVAL. */
 static int ensure_exported(int bcm) {
     int g = phys_gpio(bcm);
     char dirpath[128], num[16];
@@ -135,6 +153,8 @@ int gpioUnexport(int bcm) {
     return write_str("/sys/class/gpio/unexport", num);
 }
 
+/* Configura active_low (0/1) del GPIO.
+   active_low=1 invierte la lógica de value (útil con transistores). */
 int gpioSetActiveLow(int bcm, int active_low) {
     if (ensure_exported(bcm) < 0) return -1;
     int g = phys_gpio(bcm);
@@ -144,6 +164,8 @@ int gpioSetActiveLow(int bcm, int active_low) {
     return write_str(path, val);
 }
 
+/* pinMode estilo Arduino: OUTPUT/INPUT vía sysfs/direction.
+   Algunos kernels aceptan "low"/"high" para setear estado inicial. */
 int pinMode(int bcm, pinmode_t mode) {
     if (ensure_exported(bcm) < 0) return -1;
     int g = phys_gpio(bcm);
@@ -160,6 +182,7 @@ int pinMode(int bcm, pinmode_t mode) {
     }
 }
 
+/* Escribe 0/1 en value. (No verifica que sea salida.) */
 int digitalWrite(int bcm, int value) {
     int g = phys_gpio(bcm);
     char path[160];
@@ -167,6 +190,7 @@ int digitalWrite(int bcm, int value) {
     return write_str(path, value ? "1" : "0");
 }
 
+/* Lee value y devuelve 0/1 (o -1 en error). */
 int digitalRead(int bcm) {
     int g = phys_gpio(bcm);
     char path[160], buf[8];
@@ -175,6 +199,8 @@ int digitalRead(int bcm) {
     return (buf[0] == '0') ? 0 : 1;
 }
 
+/* Dormir en segundos fraccionarios con nanosleep,
+   reintentando si es interrumpido por señales (EINTR). */
 static void sleep_seconds(double sec) {
     struct timespec ts;
     ts.tv_sec  = (time_t)sec;
@@ -183,6 +209,8 @@ static void sleep_seconds(double sec) {
     while (nanosleep(&ts, &ts) && errno == EINTR) { }
 }
 
+/* Parpadeo básico de un GPIO como salida a 'freq_hz' durante 'duration_sec'.
+   Alterna HIGH/LOW con semiperiodos y apaga al final. */
 int blink(int bcm, double freq_hz, double duration_sec) {
     if (freq_hz <= 0.0 || duration_sec <= 0.0) { errno = EINVAL; return -1; }
     if (pinMode(bcm, OUTPUT) < 0) return -1;
@@ -204,6 +232,13 @@ int blink(int bcm, double freq_hz, double duration_sec) {
     return 0;
 }
 
+/* =========================
+ * Mapeo GPIO <-> PWM sysfs
+ * =========================
+ * pwm_map: define qué GPIOs (BCM) tienen PWM hardware y en qué
+ * pwmchip/channel caen en tu plataforma.
+ * OJO: Esto varía entre placas y kernels; ajusta según tu SoC.
+ */
 typedef struct {
     int gpio;
     int pwm_chip;
@@ -218,6 +253,7 @@ static const gpio_pwm_map_t pwm_map[] = {
 };
 static const int pwm_map_size = sizeof(pwm_map) / sizeof(pwm_map[0]);
 
+/* Busca en el mapa si 'gpio' dispone de PWM y devuelve chip/canal. */
 static int gpio_to_pwm(int gpio, int *chip, int *channel) {
     for (int i = 0; i < pwm_map_size; i++) {
         if (pwm_map[i].gpio == gpio) {
@@ -229,6 +265,7 @@ static int gpio_to_pwm(int gpio, int *chip, int *channel) {
     return -1;
 }
 
+/* Exporta un canal PWM y espera a que aparezca 'period'. */
 int pwmExport(int pwm_chip, int pwm_channel) {
     char path[128], num[16];
     snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/export", pwm_chip);
@@ -251,6 +288,7 @@ int pwmUnexport(int pwm_chip, int pwm_channel) {
     return write_str(path, num);
 }
 
+/* Ajusta periodo del PWM (nanosegundos). */
 int pwmSetPeriod(int pwm_chip, int pwm_channel, unsigned long period_ns) {
     char path[128], val[32];
     snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/pwm%d/period", 
@@ -259,6 +297,7 @@ int pwmSetPeriod(int pwm_chip, int pwm_channel, unsigned long period_ns) {
     return write_str(path, val);
 }
 
+/* Ajusta ciclo de trabajo del PWM (nanosegundos). Debe ser <= period. */
 int pwmSetDutyCycle(int pwm_chip, int pwm_channel, unsigned long duty_ns) {
     char path[128], val[32];
     snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/pwm%d/duty_cycle", 
@@ -267,6 +306,7 @@ int pwmSetDutyCycle(int pwm_chip, int pwm_channel, unsigned long duty_ns) {
     return write_str(path, val);
 }
 
+/* Habilita/inhabilita la salida PWM (1/0). */
 int pwmEnable(int pwm_chip, int pwm_channel, int enable) {
     char path[128];
     snprintf(path, sizeof(path), "/sys/class/pwm/pwmchip%d/pwm%d/enable", 
@@ -274,8 +314,14 @@ int pwmEnable(int pwm_chip, int pwm_channel, int enable) {
     return write_str(path, enable ? "1" : "0");
 }
 
-// ========== FUNCIONES DE LEDs ==========
+/* ==========================
+ *      CONTROL DE LEDs
+ * ==========================
+ * Abstracción para 4 LEDs (frontal izq/der y trasero izq/der).
+ * Requiere que vehicle_leds_t defina esos campos + is_initialized.
+ */
 
+/* Inicializa los GPIOs de los LEDs como salidas y los apaga. */
 int ledsInit(vehicle_leds_t* leds, int front_left, int front_right,
              int back_left, int back_right) {
     if (!leds) return -1;
@@ -303,10 +349,12 @@ int ledsInit(vehicle_leds_t* leds, int front_left, int front_right,
     return 0;
 }
 
+/* Set directo de un LED (GPIO) a 0/1. */
 int ledSet(int gpio, int state) {
     return digitalWrite(gpio, state ? 1 : 0);
 }
 
+/* Enciende solo LEDs frontales (y apaga traseros). */
 int ledsFrontOn(vehicle_leds_t* leds) {
     if (!leds || !leds->is_initialized) return -1;
     digitalWrite(leds->led_front_left, 1);
@@ -316,6 +364,7 @@ int ledsFrontOn(vehicle_leds_t* leds) {
     return 0;
 }
 
+/* Enciende solo LEDs traseros. */
 int ledsBackOn(vehicle_leds_t* leds) {
     if (!leds || !leds->is_initialized) return -1;
     digitalWrite(leds->led_front_left, 0);
@@ -325,6 +374,7 @@ int ledsBackOn(vehicle_leds_t* leds) {
     return 0;
 }
 
+/* Enciende lado izquierdo (frontal y trasero). */
 int ledsLeftOn(vehicle_leds_t* leds) {
     if (!leds || !leds->is_initialized) return -1;
     digitalWrite(leds->led_front_left, 1);
@@ -334,6 +384,7 @@ int ledsLeftOn(vehicle_leds_t* leds) {
     return 0;
 }
 
+/* Enciende lado derecho (frontal y trasero). */
 int ledsRightOn(vehicle_leds_t* leds) {
     if (!leds || !leds->is_initialized) return -1;
     digitalWrite(leds->led_front_left, 0);
@@ -343,6 +394,7 @@ int ledsRightOn(vehicle_leds_t* leds) {
     return 0;
 }
 
+/* Apaga todos los LEDs. */
 int ledsAllOff(vehicle_leds_t* leds) {
     if (!leds || !leds->is_initialized) return -1;
     digitalWrite(leds->led_front_left, 0);
@@ -352,8 +404,15 @@ int ledsAllOff(vehicle_leds_t* leds) {
     return 0;
 }
 
-// ========== FUNCIONES DE MOTOR (DESPUÉS DEL PWM) ==========
+/* ==========================
+ *   CONTROL DE MOTORES
+ * ==========================
+ * Driver tipo H-bridge con IN1/IN2 y ENABLE.
+ * Si 'enable' coincide con un GPIO con PWM hardware, se usa PWM sysfs.
+ * Si no, se usa GPIO digital on/off como fallback (velocidad binaria).
+ */
 
+/* Inicializa pines del motor y configura PWM si disponible. */
 int motorInit(motor_t* motor, int in1, int in2, int enable, vehicle_leds_t* leds) {
     if (!motor) return -1;
     
@@ -392,6 +451,8 @@ int motorInit(motor_t* motor, int in1, int in2, int enable, vehicle_leds_t* leds
     return 0;
 }
 
+/* Define la dirección del motor: adelante, atrás o stop.
+   Se hace con combinaciones IN1/IN2 típicas del puente H. */
 int motorSetDirection(motor_t* motor, motor_direction_t direction) {
     if (!motor || !motor->is_initialized) return -1;
     
@@ -413,6 +474,9 @@ int motorSetDirection(motor_t* motor, motor_direction_t direction) {
     return 0;
 }
 
+/* Ajusta la velocidad:
+   - Con PWM: escala duty en ns respecto a periodo 1,000,000 ns (1 kHz).
+   - Sin PWM: actúa como on/off (0% apagado, >0% encendido). */
 int motorSetSpeed(motor_t* motor, int speed_percent) {
     if (!motor || !motor->is_initialized) return -1;
     if (speed_percent < 0 || speed_percent > 100) return -1;
@@ -425,6 +489,7 @@ int motorSetSpeed(motor_t* motor, int speed_percent) {
     }
 }
 
+/* Detiene el motor (IN1/IN2 a 0 y duty 0 si PWM). */
 int motorStop(motor_t* motor) {
     if (!motor || !motor->is_initialized) return -1;
     
@@ -439,6 +504,13 @@ int motorStop(motor_t* motor) {
     return 0;
 }
 
+/* ==========================
+ *     VEHÍCULO (2 MOTORES)
+ * ==========================
+ * Comandos compuestos: mover y sincronizar LEDs indicativos.
+ */
+
+/* Conecta referencias (no inicializa pines aquí). */
 int vehicleInit(vehicle_t* vehicle, motor_t* left, motor_t* right, vehicle_leds_t* leds) {
     if (!vehicle || !left || !right || !leds) return -1;
     vehicle->motor_left = left;
@@ -447,6 +519,7 @@ int vehicleInit(vehicle_t* vehicle, motor_t* left, motor_t* right, vehicle_leds_
     return 0;
 }
 
+/* Avanza: ambos motores forward, LEDs frontales. */
 int vehicleForward(vehicle_t* vehicle, int speed) {
     if (!vehicle) return -1;
     ledsFrontOn(vehicle->leds);
@@ -457,6 +530,7 @@ int vehicleForward(vehicle_t* vehicle, int speed) {
     return 0;
 }
 
+/* Retrocede: ambos motores backward, LEDs traseros. */
 int vehicleBackward(vehicle_t* vehicle, int speed) {
     if (!vehicle) return -1;
     ledsBackOn(vehicle->leds);
@@ -467,6 +541,8 @@ int vehicleBackward(vehicle_t* vehicle, int speed) {
     return 0;
 }
 
+/* Gira a la izquierda: detiene motor izquierdo y mueve derecho.
+   (LEDs indican el lado opuesto encendido en tu convención.) */
 int vehicleLeft(vehicle_t* vehicle, int speed) {
     if (!vehicle) return -1;
     ledsRightOn(vehicle->leds);
@@ -477,6 +553,7 @@ int vehicleLeft(vehicle_t* vehicle, int speed) {
     return 0;
 }
 
+/* Gira a la derecha: motor izquierdo avanza, derecho detenido. */
 int vehicleRight(vehicle_t* vehicle, int speed) {
     if (!vehicle) return -1;
     ledsLeftOn(vehicle->leds);
@@ -487,6 +564,7 @@ int vehicleRight(vehicle_t* vehicle, int speed) {
     return 0;
 }
 
+/* Frenado total: apaga LEDs y detiene ambos motores. */
 int vehicleStop(vehicle_t* vehicle) {
     if (!vehicle) return -1;
     ledsAllOff(vehicle->leds);
@@ -495,6 +573,17 @@ int vehicleStop(vehicle_t* vehicle) {
     return 0;
 }
 
+/* =========================================
+ *    Sensor Ultrasónico (HC-SR04 típico)
+ * =========================================
+ * 'trigger_pin' genera un pulso de 10 µs.
+ * 'echo_pin' mide duración del pulso de retorno.
+ * Retorna distancia aproximada en centímetros (cm).
+ * Timeouts de 30 ms para evitar bloqueos.
+ * IMPORTANTE:
+ * - Requiere precisión temporal; GPIO sysfs no es ideal para µs.
+ * - Evita interferencias: no uses busy-wait prolongado en sistemas cargados.
+ */
 int ultrasonicRead(int trigger_pin, int echo_pin) {
     struct timeval start, end;
     long elapsed_us;
