@@ -8,15 +8,11 @@ import threading
 import hashlib
 
 app = Flask(__name__)
-app.secret_key = 'R0b0tC4r#2025!Ultr4$'
+app.secret_key = 'your-secret-key-change-this-in-production'  
 
-SALT = 'CE_Vehicle_Project_2025_Salt_Random_' + str(datetime.now().year)
-
-def hash_password_with_salt(password, salt=SALT):
-    return hashlib.sha256((password + salt).encode()).hexdigest()
-
+# Usuario hardcoded 
 USERS = {
-    'adminCE': hash_password_with_salt('#CE2004')
+    'adminCE': hashlib.sha256('CE1234'.encode()).hexdigest()
 }
 
 def login_required(f):
@@ -35,7 +31,8 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        password_hash = hash_password_with_salt(password)
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        
         if username in USERS and USERS[username] == password_hash:
             session['username'] = username
             return redirect(url_for('index'))

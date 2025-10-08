@@ -7,6 +7,10 @@ import time
 lib_path = "/root/gpioio/lib/libgpioio.so.1"
 gpiolib = ctypes.CDLL(lib_path)
 
+gpiolib.ultrasonicRead.argtypes = [ctypes.c_int, ctypes.c_int]
+gpiolib.ultrasonicRead.restype = ctypes.c_int
+
+
 # Define estructuras C en Python
 class VehicleLEDs(ctypes.Structure):
     _fields_ = [
@@ -43,24 +47,19 @@ gpiolib.ledsInit.argtypes = [
 ]
 gpiolib.ledsInit.restype = ctypes.c_int
 
-gpiolib.ultrasonicRead.argtypes = [ctypes.c_int, ctypes.c_int]
-gpiolib.ultrasonicRead.restype = ctypes.c_int
+gpiolib.motorInit.argtypes = [
+    ctypes.POINTER(Motor),
+    ctypes.c_int, ctypes.c_int, ctypes.c_int,
+    ctypes.POINTER(VehicleLEDs)
+]
+gpiolib.motorInit.restype = ctypes.c_int
 
-gpiolib.ledsFrontOn.argtypes = [ctypes.POINTER(VehicleLEDs)]
-gpiolib.ledsFrontOn.restype = ctypes.c_int
-
-gpiolib.ledsBackOn.argtypes = [ctypes.POINTER(VehicleLEDs)]
-gpiolib.ledsBackOn.restype = ctypes.c_int
-
-gpiolib.ledsLeftOn.argtypes = [ctypes.POINTER(VehicleLEDs)]
-gpiolib.ledsLeftOn.restype = ctypes.c_int
-
-gpiolib.ledsRightOn.argtypes = [ctypes.POINTER(VehicleLEDs)]
-gpiolib.ledsRightOn.restype = ctypes.c_int
-
-gpiolib.ledsAllOff.argtypes = [ctypes.POINTER(VehicleLEDs)]
-gpiolib.ledsAllOff.restype = ctypes.c_int
-
+gpiolib.vehicleInit.argtypes = [
+    ctypes.POINTER(Vehicle),
+    ctypes.POINTER(Motor),
+    ctypes.POINTER(Motor),
+    ctypes.POINTER(VehicleLEDs)
+]
 gpiolib.vehicleInit.restype = ctypes.c_int
 
 gpiolib.vehicleForward.argtypes = [ctypes.POINTER(Vehicle), ctypes.c_int]
@@ -83,20 +82,6 @@ gpiolib.pinMode.restype = ctypes.c_int
 
 gpiolib.digitalWrite.argtypes = [ctypes.c_int, ctypes.c_int]
 gpiolib.digitalWrite.restype = ctypes.c_int
-
-gpiolib.motorInit.argtypes = [
-    ctypes.POINTER(Motor),
-    ctypes.c_int, ctypes.c_int, ctypes.c_int,
-    ctypes.POINTER(VehicleLEDs)
-]
-gpiolib.motorInit.restype = ctypes.c_int
-
-gpiolib.vehicleInit.argtypes = [
-    ctypes.POINTER(Vehicle),
-    ctypes.POINTER(Motor),
-    ctypes.POINTER(Motor),
-    ctypes.POINTER(VehicleLEDs)
-]
 
 # Clase PWM por software
 class SoftwarePWM:
@@ -219,12 +204,6 @@ class VehicleController:
         
         print("Ultrasonic sensor initialized")
 
-        # Modo de control de luces
-        self.lights_auto_mode = True  # Por defecto automático
-        self.manual_lights_state = 'off'  # Estado actual en modo manual
-        
-        print("Vehicle controller with manual/auto lights initialized")
-
     def get_distance(self):
         """Lee distancia del sensor ultrasónico"""
         return gpiolib.ultrasonicRead(self.ultrasonic_trigger, self.ultrasonic_echo)
@@ -239,99 +218,32 @@ class VehicleController:
             time.sleep(0.1)  # Lee cada 100ms
     
     def forward(self, speed=80):
-        result = gpiolib.vehicleForward(ctypes.byref(self.vehicle), 100)
+        gpiolib.vehicleForward(ctypes.byref(self.vehicle), 100)
         self.pwm_left.change_duty_cycle(speed)
         self.pwm_right.change_duty_cycle(speed)
-        
-        # Restaura luces manuales si no está en modo auto
-        if not self.lights_auto_mode:
-            self._restore_manual_lights()
-        
-        return result
-    
-    def backward(self, speed=80):
-        result = gpiolib.vehicleBackward(ctypes.byref(self.vehicle), 100)
-        self.pwm_left.change_duty_cycle(speed)
-        self.pwm_right.change_duty_cycle(speed)
-        
-        if not self.lights_auto_mode:
-            self._restore_manual_lights()
-        
-        return result
-    
-    def left(self, speed=80):
-        result = gpiolib.vehicleRight(ctypes.byref(self.vehicle), 100)
-        self.pwm_left.change_duty_cycle(speed)
-        self.pwm_right.change_duty_cycle(0)
-        
-        if not self.lights_auto_mode:
-            self._restore_manual_lights()
-        
-        return result
-    
-    def right(self, speed=80):
-        result = gpiolib.vehicleLeft(ctypes.byref(self.vehicle), 100)
-        self.pwm_left.change_duty_cycle(0)
-        self.pwm_right.change_duty_cycle(speed)
-        
-        if not self.lights_auto_mode:
-            self._restore_manual_lights()
-        
-        return result
-    
-    def stop(self):
-        result = gpiolib.vehicleStop(ctypes.byref(self.vehicle))
-        self.pwm_left.change_duty_cycle(0)
-        self.pwm_right.change_duty_cycle(0)
-        
-        if not self.lights_auto_mode:
-            self._restore_manual_lights()
-        
-        return result
-    
-    def _restore_manual_lights(self):
-        """Restaura el estado de luces configurado manualmente"""
-        if self.manual_lights_state == 'front':
-            gpiolib.ledsFrontOn(ctypes.byref(self.leds))
-        elif self.manual_lights_state == 'back':
-            gpiolib.ledsBackOn(ctypes.byref(self.leds))
-        elif self.manual_lights_state == 'left':
-            gpiolib.ledsLeftOn(ctypes.byref(self.leds))
-        elif self.manual_lights_state == 'right':
-            gpiolib.ledsRightOn(ctypes.byref(self.leds))
-        elif self.manual_lights_state == 'off':
-            gpiolib.ledsAllOff(ctypes.byref(self.leds))
-    
-    def set_lights_mode(self, auto_mode):
-        """Establece el modo de control de luces"""
-        self.lights_auto_mode = auto_mode
-        if not auto_mode:
-            # Al cambiar a manual, apaga todas las luces
-            self.manual_lights_state = 'off'
-            gpiolib.ledsAllOff(ctypes.byref(self.leds))
         return 0
     
-    def lights_front(self):
-        """Enciende luces delanteras"""
-        self.manual_lights_state = 'front'
-        return gpiolib.ledsFrontOn(ctypes.byref(self.leds))
+    def backward(self, speed=80):
+        gpiolib.vehicleBackward(ctypes.byref(self.vehicle), 100)
+        self.pwm_left.change_duty_cycle(speed)
+        self.pwm_right.change_duty_cycle(speed)
+        return 0
     
-    def lights_back(self):
-        """Enciende luces traseras"""
-        self.manual_lights_state = 'back'
-        return gpiolib.ledsBackOn(ctypes.byref(self.leds))
+    def left(self, speed=80):
+        gpiolib.vehicleLeft(ctypes.byref(self.vehicle), 100)
+        self.pwm_left.change_duty_cycle(0)
+        self.pwm_right.change_duty_cycle(speed)
+        return 0
     
-    def lights_left(self):
-        """Enciende luces izquierdas"""
-        self.manual_lights_state = 'left'
-        return gpiolib.ledsLeftOn(ctypes.byref(self.leds))
+    def right(self, speed=80):
+        gpiolib.vehicleRight(ctypes.byref(self.vehicle), 100)
+        self.pwm_left.change_duty_cycle(speed)
+        self.pwm_right.change_duty_cycle(0)
+        return 0
     
-    def lights_right(self):
-        """Enciende luces derechas"""
-        self.manual_lights_state = 'right'
-        return gpiolib.ledsRightOn(ctypes.byref(self.leds))
-    
-    def lights_off(self):
-        """Apaga todas las luces"""
-        self.manual_lights_state = 'off'
-        return gpiolib.ledsAllOff(ctypes.byref(self.leds))
+    def stop(self):
+        gpiolib.vehicleStop(ctypes.byref(self.vehicle))
+        self.pwm_left.change_duty_cycle(0)
+        self.pwm_right.change_duty_cycle(0)
+        return 0
+        

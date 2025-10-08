@@ -227,33 +227,3 @@ setInterval(async () => {
         console.error('Ultrasonic error:', error);
     }
 }, 200); // Actualiza cada 200ms
-
-// Control de modo de luces
-const lightsMode = document.querySelectorAll('input[name="lights-mode"]');
-const manualLights = document.getElementById('manual-lights');
-
-lightsMode.forEach(radio => {
-    radio.addEventListener('change', async (e) => {
-        const isAuto = e.target.value === 'auto';
-        manualLights.style.display = isAuto ? 'none' : 'block';
-        
-        await fetch('/api/lights/mode', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({auto: isAuto})
-        });
-    });
-});
-
-// Control manual de luces
-document.querySelectorAll('.light-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        const action = btn.dataset.light;
-        
-        await fetch('/api/lights/control', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({action: action})
-        });
-    });
-});

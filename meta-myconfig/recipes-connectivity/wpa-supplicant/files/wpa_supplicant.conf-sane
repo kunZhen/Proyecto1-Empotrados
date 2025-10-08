@@ -3,7 +3,7 @@ ctrl_interface=DIR=/var/run/wpa_supplicant
 update_config=1
 
 network={
-    ssid="Sansung A-32"
-    psk="Mascotas#2020"
+    ssid="JSN872-2G"
+    psk="cartucho321"
     key_mgmt=WPA-PSK
 }
