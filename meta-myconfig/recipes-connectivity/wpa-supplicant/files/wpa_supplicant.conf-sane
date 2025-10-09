@@ -1,0 +1,9 @@
+country=CR
+ctrl_interface=DIR=/var/run/wpa_supplicant 
+update_config=1
+
+network={
+    ssid="JSN872-2G"
+    psk="cartucho321"
+    key_mgmt=WPA-PSK
+}

@@ -1,0 +1,41 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          vehicle-server
+# Required-Start:    $network $remote_fs
+# Required-Stop:     $network $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Vehicle Control Server
+### END INIT INFO
+
+start() {
+    echo "Starting vehicle-server..."
+    cd /root/vehicle-server
+    /usr/bin/python3 /root/vehicle-server/app.py > /tmp/vehicle-server.log 2>&1 &
+    echo $! > /var/run/vehicle-server.pid
+}
+
+stop() {
+    echo "Stopping vehicle-server..."
+    if [ -f /var/run/vehicle-server.pid ]; then
+        kill $(cat /var/run/vehicle-server.pid)
+        rm /var/run/vehicle-server.pid
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        sleep 2
+        start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
