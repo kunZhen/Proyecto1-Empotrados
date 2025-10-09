@@ -99,11 +99,12 @@ El sistema se comunica a través de una **biblioteca dinámica (`libgpioio.so`)*
 
 ### Diagrama de arquitectura del sistema
 
-
+<img width="401" height="1060" alt="Diagrama de arquitectura - Empotrados drawio (2)" src="https://github.com/user-attachments/assets/5cf43fd4-29a8-4b2d-89fd-3e8975cecfe1" />
 
 Figura 1. Diagrama de arquitectura del sistema
 
 
+<img width="2288" height="2438" alt="Modelo del sistema" src="https://github.com/user-attachments/assets/97fd2e39-35ab-420a-920e-307a802511d1" />
 Figura 2. Diagrama de arquitectura de Integración de Software y Hardware en Raspberry Pi 4 (Yocto + Flask + GPIO)
 
 ---
