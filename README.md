@@ -22,6 +22,7 @@
 - [Configuración del Sistema](#configuración-del-sistema)
 - [Uso del Sistema](#uso-del-sistema)
 - [Troubleshooting](#troubleshooting)
+- [Evidencia del prototipo físico](#evidencia_del_prototipo_físico)
 
 ---
 
@@ -48,6 +49,8 @@ El sistema se comunica a través de una **biblioteca dinámica (`libgpioio.so`)*
 
 > *El objetivo principal es optimizar los recursos del sistema embebido, manteniendo una arquitectura modular y de bajo consumo.*
 
+
+---
 
 ## Características
 
@@ -254,7 +257,7 @@ make deploy-server
 ```
 
 
----
+
 
 
 ### Ejecución del servidor web
@@ -273,9 +276,9 @@ cd /root/vehicle-server
 python3 app.py
 ```
 
-
 El servicio también se inicia automáticamente gracias a: /etc/systemd/system/vehicle-server.service
 
+---
 ## Documentación de la API (Flask)
 
 | Endpoint  | Método | Descripción                            |
@@ -286,7 +289,7 @@ El servicio también se inicia automáticamente gracias a: /etc/systemd/system/v
 | `/lights`  | POST    | Encendido/apagado de luces             |
 | `/video`   | GET     | Streaming de cámara en tiempo real     |
 
-
+---
 
 ## Uso del Sistema
 
@@ -461,3 +464,28 @@ sudo apt install -y gawk wget git diffstat unzip texinfo gcc build-essential
 #### Intentar de nuevo
 bitbake rpi-test-image
 ```
+
+
+## Evidencia del prototipo físico
+
+A continuación se presentan imágenes del prototipo del carrito desarrollado en el proyecto.  
+
+
+### Vista Frontal
+![WhatsApp Image 2025-10-07 at 3 55 12 PM](https://github.com/user-attachments/assets/836c2291-1b6d-4671-a459-1c7797665d2a)
+
+### Vista Lateral
+![WhatsApp Image 2025-10-07 at 3 55 14 PM (2)](https://github.com/user-attachments/assets/99e65036-c01b-4b73-a5a8-403a9b85bbbf)
+
+
+### Vista Superior
+![WhatsApp Image 2025-10-07 at 3 55 14 PM (1)](https://github.com/user-attachments/assets/1cdb7dc2-7760-4f44-a462-2700d67135f2)
+
+
+### Vista Inferior
+![WhatsApp Image 2025-10-07 at 3 55 14 PM](https://github.com/user-attachments/assets/80d56ecf-ca46-4ecd-85c4-5cd38fd8fbe5)
+
+
+
+
+
